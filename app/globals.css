@@ -1,0 +1,132 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import '@clerk/ui/themes/shadcn.css';
+
+@custom-variant dark (&:is(.dark *));
+
+/* Nightchannel design system — softened neobrutalism.
+   Source: docs/livestream-site-design-brief/project/Design System.dc.html */
+:root {
+  --background: #e9e4d8; /* paper */
+  --foreground: #3a352c; /* ink */
+  --card: #f3efe4;
+  --card-foreground: #3a352c;
+  --popover: #f3efe4;
+  --popover-foreground: #3a352c;
+  --primary: #c9524f; /* CTA / live */
+  --primary-foreground: #f7f1e6;
+  --secondary: #e3b45c; /* yellow — highlight */
+  --secondary-foreground: #3a352c;
+  --muted: #ede8dc; /* input-bg */
+  --muted-foreground: #847c6b;
+  --accent: #e3b45c;
+  --accent-foreground: #3a352c;
+  --destructive: #c9524f;
+  --destructive-foreground: #f7f1e6;
+  --border: #77705f; /* line */
+  --input: #ede8dc;
+  --ring: #c9524f;
+  --radius: 0rem; /* square corners, ever */
+
+  /* Nightchannel extras */
+  --yellow: #e3b45c;
+  --green: #5b9b72; /* ok / brand */
+  --bar: #2e2b26; /* page chrome: banner, ticker, footer */
+  --bar-ink: #ddd6c6;
+  --bar-muted: #8f887a;
+  --shadow-color: rgba(58, 53, 44, 0.16); /* hard offset shadows, no blur */
+}
+
+.dark {
+  --background: #1d1c1a;
+  --foreground: #c9c1b0;
+  --card: #26241f;
+  --card-foreground: #c9c1b0;
+  --popover: #26241f;
+  --popover-foreground: #c9c1b0;
+  --primary: #d05b57;
+  --primary-foreground: #f2ead9;
+  --secondary: #d8ac57;
+  --secondary-foreground: #3a352c;
+  --muted: #211f1c;
+  --muted-foreground: #8a8272;
+  --accent: #d8ac57;
+  --accent-foreground: #3a352c;
+  --destructive: #d05b57;
+  --destructive-foreground: #f2ead9;
+  --border: #6a6254;
+  --input: #211f1c;
+  --ring: #d05b57;
+
+  --yellow: #d8ac57;
+  --green: #5fa377;
+  --bar: #22201c;
+  --bar-ink: #c9c1b0;
+  --bar-muted: #7e7767;
+  --shadow-color: rgba(0, 0, 0, 0.3);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-yellow: var(--yellow);
+  --color-green: var(--green);
+  --color-bar: var(--bar);
+  --color-bar-ink: var(--bar-ink);
+  --color-bar-muted: var(--bar-muted);
+
+  --radius-sm: 0rem;
+  --radius-md: 0rem;
+  --radius-lg: 0rem;
+  --radius-xl: 0rem;
+
+  --font-sans: var(--font-space-grotesk), sans-serif;
+  --font-mono: var(--font-space-mono), monospace;
+  --font-display: var(--font-archivo-black), sans-serif;
+
+  /* hard offset shadows — no blur */
+  --shadow-brutal: 4px 4px 0 var(--shadow-color);
+  --shadow-brutal-sm: 3px 3px 0 var(--shadow-color);
+
+  --animate-blink: blink 1.2s step-end infinite;
+  --animate-pulse-soft: pulse-soft 1.2s infinite;
+}
+
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+  ::selection {
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+}

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;padding:0}
+  *{box-sizing:border-box}
+  ::selection{background:#c9524f;color:#f7f1e6}
+  a{color:#c9524f}
+  a:hover{color:#a83f3d}
+
+  [data-tf]{
+    --paper:#e9e4d8; --card:#f3efe4;
+    --ink:#3a352c; --muted:#847c6b;
+    --line:#77705f; --shadow:rgba(58,53,44,.16);
+    --primary:#c9524f; --on-primary:#f7f1e6;
+    --yellow:#e3b45c; --green:#5b9b72;
+    --bar:#2e2b26; --bar-ink:#ddd6c6; --bar-muted:#8f887a;
+    --input-bg:#ede8dc; --input-ink:#3a352c;
+  }
+  [data-tf="dark"]{
+    --paper:#1d1c1a; --card:#26241f;
+    --ink:#c9c1b0; --muted:#8a8272;
+    --line:#6a6254; --shadow:rgba(0,0,0,.3);
+    --primary:#d05b57; --on-primary:#f2ead9;
+    --yellow:#d8ac57; --green:#5fa377;
+    --bar:#22201c; --bar-ink:#c9c1b0; --bar-muted:#7e7767;
+    --input-bg:#211f1c; --input-ink:#c9c1b0;
+  }
+  @media (prefers-color-scheme: dark){
+    [data-tf="auto"]{
+      --paper:#1d1c1a; --card:#26241f;
+      --ink:#c9c1b0; --muted:#8a8272;
+      --line:#6a6254; --shadow:rgba(0,0,0,.3);
+      --primary:#d05b57; --on-primary:#f2ead9;
+      --yellow:#d8ac57; --green:#5fa377;
+      --bar:#22201c; --bar-ink:#c9c1b0; --bar-muted:#7e7767;
+      --input-bg:#211f1c; --input-ink:#c9c1b0;
+    }
+  }
+
+  @keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+  @media (max-width: 900px){
+    [data-grid2]{ grid-template-columns:1fr !important; }
+    [data-swatches]{ grid-template-columns:repeat(3,1fr) !important; }
+  }
+</style>
+</helmet>
+
+<div data-tf="auto" ref="{{ rootRef }}" style="background:var(--paper);min-height:100vh;font-family:'Space Grotesk',sans-serif;color:var(--ink)">
+
+  <!-- header -->
+  <div style="background:var(--bar);color:var(--bar-ink);padding:26px 28px;display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap">
+    <div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent;border-bottom:22px solid var(--green)"></div>
+        <div style="font-family:'Archivo Black',sans-serif;font-size:30px;text-transform:uppercase;line-height:1">Nightchannel</div>
+      </div>
+      <div style="font-family:'Space Mono',monospace;font-size:12px;color:var(--bar-muted);margin-top:10px;letter-spacing:.1em">DESIGN SYSTEM &mdash; SOFTENED NEOBRUTALISM &middot; V2</div>
+    </div>
+    <div style="flex:1"></div>
+    <div onClick="{{ cycleTheme }}" style="border:2px solid #57524a;padding:7px 12px;cursor:pointer;font-family:'Space Mono',monospace;font-size:12px;color:var(--bar-muted)" style-hover="transform:translate(-1px,-1px)">THEME:{{ themeLabel }}</div>
+  </div>
+
+  <div style="max-width:1100px;margin:0 auto;padding:28px 24px 60px;display:flex;flex-direction:column;gap:36px">
+
+    <!-- ═════ PRINCIPLES ═════ -->
+    <div data-screen-label="Principles">
+      <div style="font-family:'Archivo Black',sans-serif;font-size:22px;text-transform:uppercase;border-bottom:2px solid var(--line);padding-bottom:10px;margin-bottom:14px">01 &mdash; Principles</div>
+      <div data-grid2 style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div style="background:var(--card);border:2px solid var(--line);box-shadow:4px 4px 0 var(--shadow);padding:16px;font-size:14px;line-height:1.55">
+          <b>Softened neobrutalism.</b> Chunky type, visible borders, and hard offset shadows &mdash; but on warm charcoal-and-cream instead of pure black-on-white. Contrast is legible, never straining.
+        </div>
+        <div style="background:var(--card);border:2px solid var(--line);box-shadow:4px 4px 0 var(--shadow);padding:16px;font-size:14px;line-height:1.55">
+          <b>Broadcast-room utility.</b> Mono type for data and status, blinking/pulsing indicators for live state, flat surfaces, no gradients or rounded corners. Everything looks like equipment.
+        </div>
+      </div>
+    </div>
+
+    <!-- ═════ COLOR ═════ -->
+    <div data-screen-label="Color">
+      <div style="font-family:'Archivo Black',sans-serif;font-size:22px;text-transform:uppercase;border-bottom:2px solid var(--line);padding-bottom:10px;margin-bottom:14px">02 &mdash; Color</div>
+
+      <div style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:10px">Light theme</div>
+      <div data-swatches style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px">
+        <div style="border:2px solid var(--line);box-shadow:3px 3px 0 var(--shadow)"><div style="height:56px;background:#e9e4d8"></div><div style="background:var(--card);padding:8px 10px;font-family:'Space Mono',monospace;font-size:11px;line-height:1.5"><b>paper</b><br>#E9E4D8</div></div>
+        <div style="border:2px solid var(--line);box-shadow:3px 3px 0 var(--shadow)"><div style="height:56px;background:#f3efe4"></div><div style="background:var(--card);padding:8px 10px;font-family:'Space Mono',monospace;font-size:11px;line-height:1.5"><b>card</b><br>#F3EFE4</div></div>
+        <div style="border:2px solid var(--line);box-shadow:3px 3px 0 var(--shadow)"><div style="height:56px;background:#3a352c"></div><div style="background:var(--card);padding:8px 10px;font-family:'Space Mono',monospace;font-size:11px;line-height:1.5"><b>ink</b><br>#3A352C</div></div>
+        <div style="border:2px solid var(--line);box-shadow:3px 3px 0 var(--shadow)"><div style="height:56px;background:#847c6b"></div><div style="background:var(--card);padding:8px 10px;font-family:'Space Mono',monospace;font-size:11px;line-height:1.5"><b>muted</b><br>#847C6B</div></div>
+        <div style="border:2px solid var(--line);box-shadow:3px 3px 0 var(--shadow)"><div style="height:56px;background:#2e2b26"></div><div style="background:var(--card);padding:8px 10px;font-family:'Space Mono',monospace;font-size:11px;line-height:1.5"><b>bar</b><br>#2E2B26</div></div>
+      </div>
+
+      <div style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:10px">Accents (shared)</div>
+      <div data-swatches style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px">
+        <div style="border:2px solid var(--line);box-shadow:3px 3px 0 var(--shadow)"><div style="height:56px;background:#c9524f"></div><div style="background:var(--card);padding:8px 10px;font-family:'Space Mono',monospace;font-size:11px;line-height:1.5"><b>primary</b><br>#C9524F &middot; CTA / live</div></div>
+        <div style="border:2px solid var(--line);box-shadow:3px 3px 0 var(--shadow)"><div style="height:56px;background:#e3b45c"></div><div style="background:var(--card);padding:8px 10px;font-family:'Space Mono',monospace;font-size:11px;line-height:1.5"><b>yellow</b><br>#E3B45C &middot; highlight</div></div>
+        <div style="border:2px solid var(--line);box-shadow:3px 3px 0 var(--shadow)"><div style="height:56px;background:#5b9b72"></div><div style="background:var(--card);padding:8px 10px;font-family:'Space Mono',monospace;font-size:11px;line-height:1.5"><b>green</b><br>#5B9B72 &middot; ok / brand</div></div>
+        <div style="border:2px solid var(--line);box-shadow:3px 3px 0 var(--shadow)"><div style="height:56px;background:#77705f"></div><div style="background:var(--card);padding:8px 10px;font-family:'Space Mono',monospace;font-size:11px;line-height:1.5"><b>line</b><br>#77705F &middot; borders</div></div>
+        <div style="border:2px solid var(--line);box-shadow:3px 3px 0 var(--shadow)"><div style="height:56px;background:rgba(58,53,44,.16)"></div><div style="background:var(--card);padding:8px 10px;font-family:'Space Mono',monospace;font-size:11px;line-height:1.5"><b>shadow</b><br>rgba ink @ 16%</div></div>
+      </div>
+
+      <div style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:10px">Dark theme</div>
+      <div data-swatches style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px">
+        <div style="border:2px solid var(--line);box-shadow:3px 3px 0 var(--shadow)"><div style="height:56px;background:#1d1c1a"></div><div style="background:var(--card);padding:8px 10px;font-family:'Space Mono',monospace;font-size:11px;line-height:1.5"><b>paper</b><br>#1D1C1A</div></div>
+        <div style="border:2px solid var(--line);box-shadow:3px 3px 0 var(--shadow)"><div style="height:56px;background:#26241f"></div><div style="background:var(--card);padding:8px 10px;font-family:'Space Mono',monospace;font-size:11px;line-height:1.5"><b>card</b><br>#26241F</div></div>
+        <div style="border:2px solid var(--line);box-shadow:3px 3px 0 var(--shadow)"><div style="height:56px;background:#c9c1b0"></div><div style="background:var(--card);padding:8px 10px;font-family:'Space Mono',monospace;font-size:11px;line-height:1.5"><b>ink</b><br>#C9C1B0</div></div>
+        <div style="border:2px solid var(--line);box-shadow:3px 3px 0 var(--shadow)"><div style="height:56px;background:#d05b57"></div><div style="background:var(--card);padding:8px 10px;font-family:'Space Mono',monospace;font-size:11px;line-height:1.5"><b>primary</b><br>#D05B57</div></div>
+        <div style="border:2px solid var(--line);box-shadow:3px 3px 0 var(--shadow)"><div style="height:56px;background:#5fa377"></div><div style="background:var(--card);padding:8px 10px;font-family:'Space Mono',monospace;font-size:11px;line-height:1.5"><b>green</b><br>#5FA377</div></div>
+      </div>
+    </div>
+
+    <!-- ═════ TYPOGRAPHY ═════ -->
+    <div data-screen-label="Typography">
+      <div style="font-family:'Archivo Black',sans-serif;font-size:22px;text-transform:uppercase;border-bottom:2px solid var(--line);padding-bottom:10px;margin-bottom:14px">03 &mdash; Typography</div>
+      <div style="background:var(--card);border:2px solid var(--line);box-shadow:4px 4px 0 var(--shadow)">
+        <div style="padding:18px 20px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;gap:20px;flex-wrap:wrap">
+          <div style="font-family:'Archivo Black',sans-serif;font-size:38px;line-height:1;text-transform:uppercase">Archivo Black</div>
+          <div style="font-family:'Space Mono',monospace;font-size:12px;color:var(--muted)">display &middot; headings, buttons, card titles &middot; always uppercase &middot; 13&ndash;42px</div>
+        </div>
+        <div style="padding:18px 20px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;gap:20px;flex-wrap:wrap">
+          <div style="font-size:24px;line-height:1.2">Space Grotesk &mdash; body &amp; UI copy, 400/700</div>
+          <div style="font-family:'Space Mono',monospace;font-size:12px;color:var(--muted)">body &middot; 13&ndash;15px &middot; line-height 1.4&ndash;1.55</div>
+        </div>
+        <div style="padding:18px 20px;display:flex;align-items:baseline;gap:20px;flex-wrap:wrap">
+          <div style="font-family:'Space Mono',monospace;font-size:18px">SPACE MONO &mdash; DATA, STATUS, LABELS</div>
+          <div style="font-family:'Space Mono',monospace;font-size:12px;color:var(--muted)">mono &middot; 10&ndash;15px &middot; letter-spacing .04&ndash;.2em &middot; uppercase for labels</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═════ BUTTONS ═════ -->
+    <div data-screen-label="Buttons">
+      <div style="font-family:'Archivo Black',sans-serif;font-size:22px;text-transform:uppercase;border-bottom:2px solid var(--line);padding-bottom:10px;margin-bottom:14px">04 &mdash; Buttons</div>
+      <div style="background:var(--card);border:2px solid var(--line);box-shadow:4px 4px 0 var(--shadow);padding:20px;display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+          <div style="background:var(--primary);color:var(--on-primary);border:2px solid var(--line);box-shadow:3px 3px 0 var(--shadow);padding:10px 20px;cursor:pointer;font-family:'Archivo Black',sans-serif;font-size:13px;text-transform:uppercase" style-hover="transform:translate(-1px,-1px)">Primary CTA</div>
+          <div style="background:var(--yellow);color:#3a352c;border:2px solid var(--line);box-shadow:3px 3px 0 var(--shadow);padding:9px 16px;cursor:pointer;font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.04em" style-hover="transform:translate(-1px,-1px)">Accent</div>
+          <div style="background:var(--ink);color:var(--paper);border:2px solid var(--line);box-shadow:3px 3px 0 var(--shadow);padding:9px 16px;cursor:pointer;font-weight:700;font-size:13px;text-transform:uppercase" style-hover="transform:translate(-1px,-1px)">Solid</div>
+          <div style="background:var(--card);color:var(--ink);border:2px solid var(--line);box-shadow:3px 3px 0 var(--shadow);padding:9px 16px;cursor:pointer;font-weight:700;font-size:13px;text-transform:uppercase" style-hover="transform:translate(-1px,-1px)">Outline</div>
+          <div style="border:1px solid var(--line);color:var(--ink);padding:5px 12px;cursor:pointer;font-family:'Space Mono',monospace;font-weight:700;font-size:11px" style-hover="transform:translate(-1px,-1px)">ON</div>
+        </div>
+        <div style="font-family:'Space Mono',monospace;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px">RULES &mdash; square corners &middot; 2px border &middot; 3px offset shadow &middot; hover = translate(-1px,-1px) &middot; primary = red CTA, yellow = secondary emphasis, mono toggles for utility</div>
+      </div>
+    </div>
+
+    <!-- ═════ FORMS ═════ -->
+    <div data-screen-label="Forms">
+      <div style="font-family:'Archivo Black',sans-serif;font-size:22px;text-transform:uppercase;border-bottom:2px solid var(--line);padding-bottom:10px;margin-bottom:14px">05 &mdash; Forms</div>
+      <div data-grid2 style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div style="background:var(--card);border:2px solid var(--line);box-shadow:4px 4px 0 var(--shadow);padding:18px">
+          <label style="display:block;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Text field</label>
+          <input placeholder="you@address.net" style="width:100%;border:1px solid var(--line);background:var(--input-bg);color:var(--input-ink);padding:9px 10px;font-family:'Space Grotesk',sans-serif;font-size:14px;margin-bottom:13px"/>
+          <label style="display:block;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Secret (write-only)</label>
+          <input type="password" placeholder="stream key" style="width:100%;border:1px solid var(--line);background:var(--input-bg);color:var(--input-ink);padding:9px 10px;font-family:'Space Mono',monospace;font-size:13px"/>
+        </div>
+        <div style="background:var(--card);border:2px solid var(--line);box-shadow:4px 4px 0 var(--shadow);padding:18px;display:flex;flex-direction:column;gap:12px">
+          <div style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase">Attached action</div>
+          <div style="display:flex;gap:1px;background:var(--line);border:1px solid var(--line)">
+            <input placeholder="Say something..." style="flex:1;min-width:0;border:none;background:var(--input-bg);color:var(--input-ink);padding:10px 12px;font-family:'Space Grotesk',sans-serif;font-size:14px"/>
+            <div style="background:var(--primary);color:var(--on-primary);padding:10px 16px;cursor:pointer;font-weight:700;font-size:13px;text-transform:uppercase;display:flex;align-items:center">Send</div>
+          </div>
+          <div style="font-family:'Space Mono',monospace;font-size:12px;color:var(--muted)">Inputs are flat: 1px border, tinted background, no shadow. Buttons fuse to inputs with a 1px seam.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═════ CARDS ═════ -->
+    <div data-screen-label="Cards">
+      <div style="font-family:'Archivo Black',sans-serif;font-size:22px;text-transform:uppercase;border-bottom:2px solid var(--line);padding-bottom:10px;margin-bottom:14px">06 &mdash; Cards</div>
+      <div data-grid2 style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">
+        <div style="background:var(--card);border:2px solid var(--line);box-shadow:4px 4px 0 var(--shadow)">
+          <div style="background:var(--bar);color:var(--bar-ink);padding:9px 14px;font-family:'Archivo Black',sans-serif;font-size:13px;text-transform:uppercase">Titled card</div>
+          <div style="padding:14px 16px;font-size:14px;line-height:1.5">Dark bar header in Archivo Black, 2px border, 4px offset shadow. The workhorse container for every panel.</div>
+        </div>
+        <div style="background:var(--card);border:2px solid var(--line);box-shadow:4px 4px 0 var(--shadow);padding:15px;max-width:260px">
+          <div style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase">Stat card</div>
+          <div style="font-family:'Archivo Black',sans-serif;font-size:26px;margin-top:8px">1,204</div>
+          <div style="height:7px;background:var(--green);margin-top:13px;opacity:.85"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═════ STATUS ═════ -->
+    <div data-screen-label="Status">
+      <div style="font-family:'Archivo Black',sans-serif;font-size:22px;text-transform:uppercase;border-bottom:2px solid var(--line);padding-bottom:10px;margin-bottom:14px">07 &mdash; Status &amp; Live</div>
+      <div style="background:var(--card);border:2px solid var(--line);box-shadow:4px 4px 0 var(--shadow);padding:20px;display:flex;align-items:center;gap:26px;flex-wrap:wrap">
+        <div style="font-family:'Space Mono',monospace;font-weight:700;font-size:13px;color:var(--primary)"><span style="animation:blink 1.2s step-end infinite">&#9679; LIVE &mdash; 1,204 WATCHING</span></div>
+        <div style="display:flex;align-items:center;gap:9px;font-family:'Space Mono',monospace;font-weight:700;font-size:13px"><span style="width:12px;height:12px;background:var(--primary);display:inline-block;animation:pulse 1.2s infinite"></span>ON AIR</div>
+        <div style="display:flex;align-items:center;gap:9px;font-family:'Space Mono',monospace;font-weight:700;font-size:13px;color:var(--muted)"><span style="width:12px;height:12px;background:var(--muted);display:inline-block"></span>OFF AIR</div>
+        <div style="display:flex;align-items:center;gap:9px;font-family:'Space Mono',monospace;font-weight:700;font-size:13px"><span style="width:11px;height:11px;background:var(--green);display:inline-block;animation:pulse 1.4s infinite"></span>CONNECTED</div>
+        <div style="font-family:'Space Mono',monospace;font-size:12px;color:var(--muted);flex-basis:100%;border-top:1px solid var(--line);padding-top:12px">Live = blink (step-end). Connections = soft pulse. Squares, never circles or pills. Status text is always Space Mono, uppercase.</div>
+      </div>
+    </div>
+
+    <!-- ═════ LAYOUT RULES ═════ -->
+    <div data-screen-label="Layout Rules">
+      <div style="font-family:'Archivo Black',sans-serif;font-size:22px;text-transform:uppercase;border-bottom:2px solid var(--line);padding-bottom:10px;margin-bottom:14px">08 &mdash; Layout Rules</div>
+      <div style="background:var(--card);border:2px solid var(--line);box-shadow:4px 4px 0 var(--shadow);padding:18px 20px;font-size:14px;line-height:1.7">
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 18px;font-size:13px">
+          <span style="font-family:'Space Mono',monospace;color:var(--muted)">CORNERS</span><span>0px everywhere &mdash; no border-radius, ever</span>
+          <span style="font-family:'Space Mono',monospace;color:var(--muted)">BORDERS</span><span>2px <b>line</b> on containers, 1px on rows and inputs</span>
+          <span style="font-family:'Space Mono',monospace;color:var(--muted)">SHADOWS</span><span>hard offset only: 4px 4px 0 <b>shadow</b> (3px on buttons), no blur</span>
+          <span style="font-family:'Space Mono',monospace;color:var(--muted)">SPACING</span><span>14&ndash;20px gaps between cards, 14&ndash;16px card padding</span>
+          <span style="font-family:'Space Mono',monospace;color:var(--muted)">HOVER</span><span>translate(-1px,-1px) &mdash; the element lifts toward its shadow</span>
+          <span style="font-family:'Space Mono',monospace;color:var(--muted)">CHROME</span><span>page frame (banner, ticker, footer) uses <b>bar</b> surfaces in both themes</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { themeLabel:'AUTO' };
+  constructor(props){
+    super(props);
+    this.rootRef = React.createRef();
+  }
+  cycleTheme = () => {
+    const order=['auto','light','dark'];
+    const cur=this.rootRef.current ? (this.rootRef.current.dataset.tf||'auto') : 'auto';
+    const next=order[(order.indexOf(cur)+1)%order.length];
+    if(this.rootRef.current) this.rootRef.current.dataset.tf=next;
+    this.setState({themeLabel:next.toUpperCase()});
+  };
+  renderVals(){
+    return { rootRef:this.rootRef, themeLabel:this.state.themeLabel, cycleTheme:this.cycleTheme };
+  }
+}
+</script>
+</body>
+</html>
