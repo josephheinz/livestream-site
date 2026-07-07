@@ -45,11 +45,11 @@ export default function Home() {
 }
 
 function Content() {
-	const messages = useQuery(api.messages.getForCurrentUser);
+	const me = useQuery(api.users.me);
 	return (
 		<div className="flex flex-col items-center gap-2">
 			<h1 className="text-3xl font-bold">You&apos;re signed in 🎉</h1>
-			<p className="text-foreground/70">Authenticated content: {messages?.length ?? 0} messages</p>
+			<p className="text-foreground/70">Welcome{me ? `, ${me.name}` : ''}!</p>
 		</div>
 	);
 }
