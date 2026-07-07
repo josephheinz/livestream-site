@@ -6,7 +6,7 @@
 
 ## Summary
 
-Model the entire livestream domain in Convex around one central `streams` table whose lifecycle (`scheduled → live → ended [+recording]`) derives every user-facing view — schedule, live player, archive — so nothing can drift. `users` mirrors Clerk (webhook + session upsert); `playbackStates`, `chatMessages`, `reactions`, and `presenceSessions` hang off users×streams. All frontend reads are reactive Convex queries (go-live/chat/counts push automatically); all writes are validated mutations with invariants (single live stream, live-only chat, rate limits, out-of-order-safe playback saves) enforced transactionally inside the mutation.
+Model the livestream domain in Convex around one central `streams` table whose lifecycle (`scheduled → live → ended/canceled`) derives every user-facing view — schedule and live player — so nothing can drift. This is a live-first site: recordings/archives and playback-position tracking are deferred to a future spec. `users` mirrors Clerk (webhook + session upsert); `chatMessages`, `reactions` (any unicode emoji or admin-uploaded custom emoji via `customEmojis` + Convex file storage), and `presenceSessions` hang off users×streams. All frontend reads are reactive Convex queries (go-live/chat/counts push automatically); all writes are validated mutations with invariants (single live stream, live-only chat, rate limits, active-emoji checks) enforced transactionally inside the mutation.
 
 ## Technical Context
 
@@ -14,7 +14,7 @@ Model the entire livestream domain in Convex around one central `streams` table 
 
 **Primary Dependencies**: Convex 1.31 (backend/db), Next.js 16.1 App Router + React 19 (frontend), `@clerk/nextjs` 6 (auth, already wired via `convex/auth.config.ts`)
 
-**Storage**: Convex database — 6 tables per [data-model.md](data-model.md)
+**Storage**: Convex database — 6 tables per [data-model.md](data-model.md); Convex file storage for custom emoji images
 
 **Testing**: vitest + `convex-test` (to be added; per docs/TESTING-CONSIDERATIONS.md every PR ships tests), `tsc --noEmit` gate
 
@@ -24,7 +24,7 @@ Model the entire livestream domain in Convex around one central `streams` table 
 
 **Performance Goals**: Go-live visible to all clients <5s (SC-001); chat propagation <2s (SC-006); viewer count within 10% / stale-drop <60s (SC-007)
 
-**Constraints**: Anonymous viewing everywhere except posting/playback-resume; at most one live stream; no stored counters; soft-delete moderation
+**Constraints**: Anonymous viewing everywhere except posting; at most one live stream; no stored counters; soft-delete moderation; no recordings/VOD (deferred)
 
 **Scale/Scope**: Single channel/tenant; audiences ~hundreds of concurrent viewers (presence count-on-read ceiling noted in research D4)
 
@@ -39,7 +39,7 @@ Model the entire livestream domain in Convex around one central `streams` table 
 ```text
 specs/001-convex-data-architecture/
 ├── plan.md              # This file
-├── research.md          # Phase 0 — 9 design decisions (D1–D9)
+├── research.md          # Phase 0 — 11 design decisions (D1–D11; D7 removed post-analysis)
 ├── data-model.md        # Phase 1 — 6 tables, indexes, transitions
 ├── quickstart.md        # Phase 1 — automated + manual validation guide
 ├── contracts/
@@ -56,8 +56,8 @@ convex/
 ├── streams.ts           # NEW — lifecycle queries + admin mutations
 ├── chat.ts              # NEW — list, send, remove
 ├── reactions.ts         # NEW — recent, send
+├── emojis.ts            # NEW — list, generateUploadUrl, create, deactivate
 ├── presence.ts          # NEW — count, heartbeat, leave
-├── playback.ts          # NEW — get, save
 ├── http.ts              # NEW — Clerk webhook
 ├── crons.ts             # NEW — presence/reaction purges
 ├── lib/auth.ts          # NEW — requireUser / requireAdmin helpers

@@ -18,11 +18,11 @@ Mirror of the Clerk identity. Created/updated by webhook + session upsert (resea
 
 **Indexes**: `by_externalId` on `["externalId"]`
 
-**Rules**: Upserts only ever come from Clerk data (webhook or authenticated session). `user.deleted` webhook deletes the row; dependent rows (playback, chat) reference by ID and are either cascaded by the delete handler or tolerated as orphans by read queries (edge case in spec).
+**Rules**: Upserts only ever come from Clerk data (webhook or authenticated session). `user.deleted` webhook deletes the row; chat messages are NOT cascaded — they remain, and read queries resolve missing authors to a "Deleted user" fallback (FR-005).
 
 ### streams
 
-The central entity — schedule, live view, and archive are all queries over it (research D1).
+The central entity — schedule and live view are both queries over it (research D1).
 
 | Field | Type | Notes |
 |---|---|---|
@@ -33,37 +33,21 @@ The central entity — schedule, live view, and archive are all queries over it 
 | `actualEnd` | `v.optional(v.number())` | set by `end` |
 | `status` | `v.union(v.literal("scheduled"), v.literal("live"), v.literal("ended"), v.literal("canceled"))` | |
 | `liveUrl` | `v.optional(v.string())` | self-hosted HLS manifest for the live broadcast |
-| `recordingUrl` | `v.optional(v.string())` | HLS manifest of the recording; presence ⇒ archived/playable |
 
-**Indexes**: `by_status` on `["status", "scheduledStart"]` — serves "the live stream" (at most one row), "upcoming, soonest first" (range on scheduledStart), and "archive" (status ended; newest-first via order desc + filter recordingUrl set).
+**Indexes**: `by_status` on `["status", "scheduledStart"]` — serves "the live stream" (at most one row) and "upcoming, soonest first" (range on scheduledStart).
 
 **State transitions** (all admin-only mutations, FR-008/FR-010):
 
 ```
-scheduled ──goLive──▶ live ──end──▶ ended ──attachRecording──▶ ended+recordingUrl ("archived")
+scheduled ──goLive──▶ live ──end──▶ ended
 scheduled ──cancel──▶ canceled
 ```
 
 - `goLive`: rejects if any other stream is live (transactional check, research D2); sets `actualStart`.
 - `end`: only from `live`; sets `actualEnd`.
-- `attachRecording`: only on `ended`; sets `recordingUrl`.
 - `cancel`: only from `scheduled` — handles the "never went live" edge case.
 - No hard deletes; `canceled`/`ended` rows are retained (spec assumption).
-
-### playbackStates
-
-One row per (user, stream) — research D7.
-
-| Field | Type | Notes |
-|---|---|---|
-| `userId` | `v.id("users")` | |
-| `streamId` | `v.id("streams")` | |
-| `position` | `v.number()` | seconds into the recording |
-| `updatedAt` | `v.number()` | client-supplied; writes only accepted when newer |
-
-**Indexes**: `by_user_and_stream` on `["userId", "streamId"]` (resume lookup), `by_user` on `["userId"]` (future "continue watching" list).
-
-**Rules**: Authenticated users only — anonymous playback persists nothing (FR-006). Stale `updatedAt` writes are silently ignored (FR-009).
+- Recordings/archives deliberately absent — future spec (spec assumption).
 
 ### chatMessages
 
@@ -76,7 +60,7 @@ One row per (user, stream) — research D7.
 
 **Indexes**: `by_stream` on `["streamId"]` (list, ordered by `_creationTime`), `by_user_and_stream` on `["userId", "streamId"]` (rate-limit lookback, research D5)
 
-**Rules**: Writable only while the stream is live (FR-017, checked in mutation). Reads filter `removed`. Rate limit: ≥2s between messages per user per stream.
+**Rules**: Writable only while the stream is live (FR-017, checked in mutation). Reads filter `removed` and resolve deleted authors to a "Deleted user" fallback. Rate limit: ≥2s between messages per user per stream.
 
 ### reactions
 
@@ -86,11 +70,25 @@ Ephemeral by policy, not by storage (research D6).
 |---|---|---|
 | `streamId` | `v.id("streams")` | |
 | `userId` | `v.id("users")` | |
-| `kind` | `v.string()` | emoji identifier, validated against a small allowlist |
+| `kind` | `v.string()` | a unicode emoji (the character itself, ≤16 chars) or `custom:<customEmojis _id>` |
 
 **Indexes**: `by_stream` on `["streamId"]`
 
-**Rules**: Live streams only. Clients read the trailing ~30s; a cron purges rows older than 1h.
+**Rules**: Live streams only. `custom:` kinds must reference an existing, active customEmojis row (checked in mutation, FR-018). Clients read the trailing ~30s; a cron purges rows older than 1h.
+
+### customEmojis
+
+Admin-managed reaction images (FR-018). Image bytes live in Convex file storage.
+
+| Field | Type | Notes |
+|---|---|---|
+| `name` | `v.string()` | display/search name, e.g. "partyparrot" |
+| `storageId` | `v.id("_storage")` | uploaded image in Convex file storage |
+| `active` | `v.boolean()` | deactivation blocks new reactions; history unaffected |
+
+**Indexes**: `by_active` on `["active"]` (picker lists active only)
+
+**Rules**: Create/deactivate are admin-only. Rows are never hard-deleted while reactions may still reference them (reactions purge within 1h, so a deactivated emoji is safely deletable after that window — not automated in v1).
 
 ### presenceSessions
 
@@ -110,10 +108,10 @@ One per connected viewer per live stream — research D4.
 ## Relationships
 
 ```
-users 1 ──── n playbackStates n ──── 1 streams
-users 1 ──── n chatMessages   n ──── 1 streams
+users 1 ──── n chatMessages   n ──── 1 streams   (author may be deleted → fallback)
 users 1 ──── n reactions      n ──── 1 streams
 users 0..1 ─ n presenceSessions n ── 1 streams   (userId optional — anonymous)
+reactions n ─(kind "custom:<id>")─ 1 customEmojis
 ```
 
-No relations between interaction tables; everything joins through `streams` or `users`.
+No other relations between interaction tables; everything joins through `streams` or `users`.

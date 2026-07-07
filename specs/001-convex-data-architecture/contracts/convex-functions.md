@@ -1,6 +1,6 @@
 # Contracts: Convex Function Surface
 
-The public API this feature exposes to the Next.js frontend. File layout mirrors domains: `convex/users.ts`, `convex/streams.ts`, `convex/chat.ts`, `convex/reactions.ts`, `convex/presence.ts`, `convex/playback.ts`, `convex/http.ts`, `convex/crons.ts`.
+The public API this feature exposes to the Next.js frontend. File layout mirrors domains: `convex/users.ts`, `convex/streams.ts`, `convex/chat.ts`, `convex/reactions.ts`, `convex/emojis.ts`, `convex/presence.ts`, `convex/http.ts`, `convex/crons.ts`.
 
 Auth notes: **public** = callable anonymously; **auth** = requires Clerk identity; **admin** = requires identity whose user row has `role: "admin"` (server-checked, throws otherwise).
 
@@ -10,12 +10,11 @@ Auth notes: **public** = callable anonymously; **auth** = requires Clerk identit
 |---|---|---|---|
 | `streams.getLive` | — | `Stream \| null` (the at-most-one live stream) | public |
 | `streams.listUpcoming` | — | `Stream[]` scheduled, soonest first | public |
-| `streams.listArchive` | `{ limit? }` | `Stream[]` ended with recordingUrl, newest first | public |
 | `streams.get` | `{ streamId }` | `Stream \| null` | public |
-| `chat.list` | `{ streamId }` | last 100 non-removed messages with author name/avatar, oldest→newest | public |
+| `chat.list` | `{ streamId }` | last 100 non-removed messages with author name/avatar (deleted authors → "Deleted user" fallback), oldest→newest | public |
 | `reactions.recent` | `{ streamId }` | reactions from the trailing 30s | public |
+| `emojis.list` | — | active custom emojis with resolved image URLs | public |
 | `presence.count` | `{ streamId }` | `number` of fresh sessions | public |
-| `playback.get` | `{ streamId }` | `{ position, updatedAt } \| null` for the caller | auth |
 | `users.me` | — | `User \| null` for the caller | public (null if anon) |
 
 ## Mutations
@@ -27,20 +26,21 @@ Auth notes: **public** = callable anonymously; **auth** = requires Clerk identit
 | `streams.update` | `{ streamId, ...editable fields }` | Edit schedule metadata / liveUrl | admin |
 | `streams.goLive` | `{ streamId }` | `scheduled → live`; **throws if another stream is live**; sets `actualStart` | admin |
 | `streams.end` | `{ streamId }` | `live → ended`; sets `actualEnd` | admin |
-| `streams.attachRecording` | `{ streamId, recordingUrl }` | Only on `ended`; makes it archived/playable | admin |
 | `streams.cancel` | `{ streamId }` | `scheduled → canceled` | admin |
 | `chat.send` | `{ streamId, body }` | Validates: stream live, body 1–500 chars, ≥2s since sender's last message | auth |
 | `chat.remove` | `{ messageId }` | Sets `removed: true` | admin |
-| `reactions.send` | `{ streamId, kind }` | Validates: stream live, kind in allowlist | auth |
+| `reactions.send` | `{ streamId, kind }` | Validates: stream live; kind is a unicode emoji (≤16 chars) or `custom:<id>` of an active custom emoji | auth |
+| `emojis.generateUploadUrl` | — | Returns a Convex file-storage upload URL | admin |
+| `emojis.create` | `{ name, storageId }` | Saves an uploaded image as an active custom emoji | admin |
+| `emojis.deactivate` | `{ emojiId }` | Sets `active: false`; new reactions with it are rejected | admin |
 | `presence.heartbeat` | `{ streamId, sessionId }` | Upsert session row, refresh `lastSeen`; attaches userId if signed in | public |
 | `presence.leave` | `{ streamId, sessionId }` | Delete session row (clean disconnect) | public |
-| `playback.save` | `{ streamId, position, updatedAt }` | Upsert; **ignored if stored `updatedAt` is newer** | auth |
 
 ## HTTP actions (`convex/http.ts`)
 
 | Route | Source | Behavior |
 |---|---|---|
-| `POST /clerk-users-webhook` | Clerk webhook (svix-signed; signature verified, else 400) | `user.created`/`user.updated` → upsert users row; `user.deleted` → delete users row + cascade playbackStates |
+| `POST /clerk-users-webhook` | Clerk webhook (svix-signed; signature verified, else 400) | `user.created`/`user.updated` → upsert users row; `user.deleted` → delete users row (chat messages remain; readers show "Deleted user") |
 
 ## Crons (`convex/crons.ts`)
 
@@ -51,6 +51,6 @@ Auth notes: **public** = callable anonymously; **auth** = requires Clerk identit
 
 ## Frontend data-flow summary
 
-- **Read path**: components use `useQuery` (via `convex/react`) — every query above is a live subscription; go-live, chat, counts, and archive updates push automatically (FR-003).
-- **Write path**: `useMutation` for viewer actions (chat, reactions, playback saves, heartbeats) and admin lifecycle actions.
+- **Read path**: components use `useQuery` (via `convex/react`) — every query above is a live subscription; go-live, chat, counts, and schedule updates push automatically (FR-003).
+- **Write path**: `useMutation` for viewer actions (chat, reactions, heartbeats) and admin actions (lifecycle, moderation, emoji management; emoji upload is generateUploadUrl → POST file → create).
 - **Identity**: Clerk provides the JWT (`auth.config.ts` already wired); Convex functions read it via `ctx.auth.getUserIdentity()` and join to `users` by `externalId`.

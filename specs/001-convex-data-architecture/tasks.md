@@ -11,7 +11,7 @@
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)
-- **[Story]**: US1 = watch live, US2 = schedule/archive, US3 = chat/presence, US4 = resume playback
+- **[Story]**: US1 = watch live, US2 = schedule, US3 = chat/reactions/presence, US4 = identity sync (satisfied by Foundational phase)
 
 ## Phase 1: Setup (Shared Infrastructure)
 
@@ -29,10 +29,10 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Create convex/schema.ts defining all 6 tables and indexes exactly per specs/001-convex-data-architecture/data-model.md (users, streams, playbackStates, chatMessages, reactions, presenceSessions)
+- [ ] T004 Create convex/schema.ts defining all 6 tables and indexes exactly per specs/001-convex-data-architecture/data-model.md (users, streams, chatMessages, reactions, customEmojis, presenceSessions)
 - [ ] T005 Create convex/lib/auth.ts with `getCurrentUser(ctx)`, `requireUser(ctx)`, and `requireAdmin(ctx)` helpers (join Clerk identity → users row via by_externalId; requireAdmin throws unless `role === "admin"`)
 - [ ] T006 Create convex/users.ts with `me` query and `ensure` upsert mutation per contracts/convex-functions.md
-- [ ] T007 [P] Create convex/http.ts with the svix-verified `POST /clerk-users-webhook` HTTP action (user.created/updated → upsert; user.deleted → delete user + cascade playbackStates); add `svix` dependency
+- [ ] T007 [P] Create convex/http.ts with the svix-verified `POST /clerk-users-webhook` HTTP action (user.created/updated → upsert; user.deleted → delete the users row only — chat messages remain per research D11); add `svix` dependency
 - [ ] T008 [P] Write convex/__tests__/users.test.ts covering: ensure creates then updates a user; me returns null anonymously; requireAdmin rejects non-admins
 
 **Checkpoint**: Schema deployed, identity flows work — user stories can now proceed (even in parallel)
@@ -57,21 +57,21 @@
 
 ---
 
-## Phase 4: User Story 2 - Viewer browses schedule and archives (Priority: P2)
+## Phase 4: User Story 2 - Viewer browses the schedule (Priority: P2)
 
-**Goal**: Upcoming and archive listings derived from the same streams table; recordings attachable; cancellation handled
+**Goal**: Upcoming listing derived from the same streams table; cancellation handled
 
-**Independent Test**: quickstart.md step 6 + seeded fixtures — upcoming lists only future scheduled soonest-first; archive lists only ended-with-recording newest-first
+**Independent Test**: Seeded fixtures — upcoming lists only future scheduled streams soonest-first; canceled streams vanish from it
 
 ### Tests for User Story 2
 
-- [ ] T011 [P] [US2] Write convex/__tests__/streams.listings.test.ts (failing first): listUpcoming excludes live/ended/canceled and orders by scheduledStart; listArchive excludes ended-without-recording and orders newest-first; attachRecording only valid on ended; cancel only valid from scheduled
+- [ ] T011 [P] [US2] Write convex/__tests__/streams.listings.test.ts (failing first): listUpcoming excludes live/ended/canceled and orders by scheduledStart; cancel only valid from scheduled; update edits metadata without changing status
 
 ### Implementation for User Story 2
 
-- [ ] T012 [US2] Extend convex/streams.ts with `listUpcoming` and `listArchive` queries plus `update`, `attachRecording`, `cancel` admin mutations per contracts/convex-functions.md
+- [ ] T012 [US2] Extend convex/streams.ts with `listUpcoming` query plus `update` and `cancel` admin mutations per contracts/convex-functions.md
 
-**Checkpoint**: Schedule and archive fully derivable; US1 unaffected
+**Checkpoint**: Schedule fully derivable; US1 unaffected
 
 ---
 
@@ -83,36 +83,38 @@
 
 ### Tests for User Story 3
 
-- [ ] T013 [P] [US3] Write convex/__tests__/chat.test.ts (failing first): send requires auth + live stream (FR-013/FR-017); 2s rate limit rejects rapid second message (research D5); remove is admin-only and hides message from list; body validation (empty / >500 chars)
+- [ ] T013 [P] [US3] Write convex/__tests__/chat.test.ts (failing first): send requires auth + live stream (FR-013/FR-017); 2s rate limit rejects rapid second message (research D5); remove is admin-only and hides message from list; body validation (empty / >500 chars); a message whose author row was deleted lists with the "Deleted user" fallback (research D11)
 - [ ] T014 [P] [US3] Write convex/__tests__/presence.test.ts (failing first): heartbeat upserts by (streamId, sessionId); count includes only sessions with lastSeen within 60s (research D4); leave deletes the session
-- [ ] T015 [P] [US3] Write convex/__tests__/reactions.test.ts (failing first): send requires auth + live stream + allowlisted kind; recent returns only trailing-30s reactions
+- [ ] T015 [P] [US3] Write convex/__tests__/reactions.test.ts (failing first): send requires auth + live stream; unicode-emoji kind accepted; `custom:<id>` kind accepted only for existing active custom emojis, rejected when inactive/unknown; recent returns only trailing-30s reactions
 
 ### Implementation for User Story 3
 
-- [ ] T016 [P] [US3] Create convex/chat.ts with `list` query (last 100, non-removed, joined author name/avatar) and `send`, `remove` mutations per contracts/convex-functions.md
+- [ ] T016 [P] [US3] Create convex/chat.ts with `list` query (last 100, non-removed, joined author name/avatar with "Deleted user" fallback) and `send`, `remove` mutations per contracts/convex-functions.md
 - [ ] T017 [P] [US3] Create convex/presence.ts with `count` query and `heartbeat`, `leave` mutations per contracts/convex-functions.md
-- [ ] T018 [P] [US3] Create convex/reactions.ts with `recent` query and `send` mutation per contracts/convex-functions.md
+- [ ] T018 [P] [US3] Create convex/reactions.ts with `recent` query and `send` mutation (kind validation per research D6) per contracts/convex-functions.md
 - [ ] T019 [US3] Create convex/crons.ts with `purgeStalePresence` (every 5 min, lastSeen > 5 min old) and `purgeOldReactions` (hourly, older than 1h) plus their internal mutations
 
 **Checkpoint**: Full interactivity layer green; US1/US2 unaffected
 
 ---
 
-## Phase 6: User Story 4 - Signed-in viewer resumes where they left off (Priority: P4)
+## Phase 6: User Story 3 extension - Custom emojis (FR-018)
 
-**Goal**: Cross-device playback resume for signed-in users; anonymous viewers persist nothing
+**Goal**: Admins upload/deactivate custom emoji images (Convex file storage); viewers react with them
 
-**Independent Test**: quickstart.md step 7 — save position, fresh session resumes at it; stale multi-device write ignored
+**Independent Test**: As admin, upload an image emoji → it appears in `emojis.list` and a reaction with `custom:<id>` succeeds; deactivate it → new reactions rejected, list no longer offers it
 
-### Tests for User Story 4
+> **Note**: User Story 4 (identity sync) requires no phase of its own — it is fully delivered by Foundational tasks T006–T008. Playback resume was removed from the spec (research D7).
 
-- [ ] T020 [P] [US4] Write convex/__tests__/playback.test.ts (failing first): save then get round-trips; save with older updatedAt than stored is ignored (research D7); get returns null anonymously and save throws
+### Tests
 
-### Implementation for User Story 4
+- [ ] T020 [P] [US3] Write convex/__tests__/emojis.test.ts (failing first): create/deactivate are admin-only; list returns only active emojis with resolved image URLs; deactivated emoji rejected by reactions.send (pairs with T015)
 
-- [ ] T021 [US4] Create convex/playback.ts with `get` query and `save` mutation per contracts/convex-functions.md (upsert on by_user_and_stream; reject stale updatedAt silently)
+### Implementation
 
-**Checkpoint**: All four stories independently green
+- [ ] T021 [US3] Create convex/emojis.ts with `list` query and `generateUploadUrl`, `create`, `deactivate` admin mutations per contracts/convex-functions.md (research D10)
+
+**Checkpoint**: All stories independently green
 
 ---
 
@@ -132,6 +134,7 @@
 - **Foundational (Phase 2)**: needs T001/T002 for tests; T004 (schema) blocks T005–T008; blocks ALL user stories
 - **User Stories (Phases 3–6)**: each depends only on Phase 2 — they touch disjoint files and can run in parallel or in priority order
   - US2 (T012) extends the same convex/streams.ts as US1 (T010) — if run in parallel, coordinate on that one file; otherwise US1 → US2 sequentially
+  - Phase 6 (T021 emojis.ts) is independent file-wise, but T015/T018's custom-kind validation reads the customEmojis table — run Phase 6 with or before the reactions tasks for green tests in one pass
 - **Polish (Phase 7)**: after all desired stories
 
 ### Within Each Story
@@ -144,7 +147,7 @@
 - Phase 1: T002 ∥ T003
 - Phase 2: T007 ∥ T008 (after T004–T006)
 - Phase 5: T013 ∥ T014 ∥ T015, then T016 ∥ T017 ∥ T018
-- Stories US3 and US4 are fully independent of US1/US2 file-wise — a second developer can start Phase 5/6 right after Phase 2
+- Phases 5–6 are fully independent of US1/US2 file-wise — a second developer can start them right after Phase 2
 
 ## Implementation Strategy
 

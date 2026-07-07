@@ -4,7 +4,7 @@ All spec-level ambiguities were resolved during `/speckit-specify` (manual admin
 
 ## D1: Single source of truth for stream lifecycle
 
-- **Decision**: One `streams` table with a `status` union (`scheduled | live | ended | canceled`). Schedule, live view, and archive are queries over this table — no separate schedule or archive tables. "Archived" is derived: `status === "ended" && recordingUrl` set.
+- **Decision**: One `streams` table with a `status` union (`scheduled | live | ended | canceled`). Schedule and live view are queries over this table — no separate schedule table. *(Amended post-analysis: recordings/archives cut from this spec entirely — live-first site; a future recordings spec reintroduces them.)*
 - **Rationale**: FR-007/SC-005 forbid drift; derived views can't drift. Convex reactive queries make "what's live?" push to every client automatically.
 - **Alternatives considered**: Separate `schedules` and `archives` tables — rejected, classic sync bug farm.
 
@@ -18,7 +18,7 @@ All spec-level ambiguities were resolved during `/speckit-specify` (manual admin
 
 - **Decision**: `users` table keyed by Clerk's user ID (`externalId`, indexed). Sync via Clerk webhook → Convex HTTP action (`user.created`, `user.updated`, `user.deleted`), plus a session-time `users.ensure` upsert mutation as the gap-filler.
 - **Rationale**: This is the documented Clerk+Convex pattern; the upsert covers webhook delivery gaps per the spec assumption.
-- **Alternatives considered**: JWT-only (no users table) — rejected, playback state and chat need a stable local ID to join on.
+- **Alternatives considered**: JWT-only (no users table) — rejected, chat and reactions need a stable local ID to join on.
 
 ## D4: Presence / viewer counts (FR-016, SC-007)
 
@@ -34,16 +34,16 @@ All spec-level ambiguities were resolved during `/speckit-specify` (manual admin
 - **Rationale**: One indexed read inside the transaction; no dependency.
 - **Alternatives considered**: `@convex-dev/rate-limiter` — deferred, YAGNI at one rule.
 
-## D6: Reactions (FR-015)
+## D6: Reactions (FR-015, FR-018)
 
-- **Decision**: `reactions` table (streamId, userId, kind). Clients subscribe to the last ~30s of reactions via a `["streamId"]` index ordered by `_creationTime`; a cron purges rows older than an hour.
-- **Rationale**: Spec says retention can be minimal; rows + purge is simpler than any in-memory scheme and stays reactive for free.
+- **Decision**: `reactions` table (streamId, userId, kind) where `kind` is either the unicode emoji character itself (≤16 chars, no allowlist) or `custom:<id>` referencing an admin-managed `customEmojis` table (name + Convex file-storage image + active flag). Clients subscribe to the last ~30s via a `["streamId"]` index; a cron purges rows older than an hour.
+- **Rationale**: Spec says retention can be minimal; rows + purge is simpler than any in-memory scheme and stays reactive for free. Storing the emoji character directly avoids maintaining a unicode allowlist; the `custom:` prefix keeps one string field instead of a union.
+- **Alternatives considered**: Fixed emoji allowlist — rejected by product decision (any unicode emoji allowed). Separate columns for unicode vs custom — more schema for no query benefit.
 
-## D7: Playback position writes (FR-006, FR-009)
+## D7: Playback position writes — REMOVED
 
-- **Decision**: `playbackStates` one row per (user, stream), client throttles saves to every ~15s. Mutation carries a client `updatedAt`; it only overwrites when the incoming `updatedAt` is newer than the stored one — cheap out-of-order protection for multi-device.
-- **Rationale**: Meets SC-003 (resume within 30s of true stop) with trivial write volume.
-- **Alternatives considered**: Server-time last-write-wins — loses the multi-device out-of-order case FR-009 names.
+- **Decision**: Cut from this spec (analysis remediation, 2026-07-07). Live-first site: pause/resume rejoins at the live edge, which needs no stored state. `playbackStates` table, `playback.ts`, and throttling concerns all deleted; a future recordings/VOD spec owns resume if it ever matters.
+- **Rationale**: YAGNI — no recordings means no position worth saving.
 
 ## D8: Chat lifecycle & moderation (FR-013, FR-014, FR-017)
 
@@ -52,5 +52,17 @@ All spec-level ambiguities were resolved during `/speckit-specify` (manual admin
 
 ## D9: Testing approach
 
-- **Decision**: `convex-test` + vitest for all Convex functions (unit level, real Convex runtime semantics, not mocks); invariants D2, D5, D7, D8 each get dedicated tests. Playwright deferred to a UI feature spec.
+- **Decision**: `convex-test` + vitest for all Convex functions (unit level, real Convex runtime semantics, not mocks); invariants D2, D5, D8 each get dedicated tests. Playwright deferred to a UI feature spec.
 - **Rationale**: Matches docs/TESTING-CONSIDERATIONS.md ("every PR has tests", convex-test named explicitly).
+
+## D10: Custom emoji storage (FR-018)
+
+- **Decision**: Convex file storage for the image bytes (`emojis.generateUploadUrl` → client POSTs file → `emojis.create` saves `storageId`); `customEmojis` table carries name + active flag. Deactivate, never hard-delete, while reactions may reference the emoji (reactions purge within 1h anyway).
+- **Rationale**: File storage is built into Convex — no new infrastructure; the upload-URL flow is its documented pattern.
+- **Alternatives considered**: External blob store (Vercel Blob/S3) — rejected, adds a service for images measured in KB. Cascade-deleting reactions on emoji removal — unnecessary given the 1h purge.
+
+## D11: Deleted-user chat handling (FR-005, analysis U1)
+
+- **Decision**: Clerk `user.deleted` removes only the users row. Chat messages keep their dangling `userId`; `chat.list` resolves missing authors to a "Deleted user" fallback (null-safe join).
+- **Rationale**: Preserves visible chat history and the moderation audit trail while fully unlinking identity.
+- **Alternatives considered**: Cascade-delete messages — destroys history; sentinel-user rewrite — extra write fan-out for the same read behavior the fallback gives for free.
