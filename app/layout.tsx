@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { Archivo_Black, Space_Grotesk, Space_Mono } from 'next/font/google';
-//@ts-ignore
 import './globals.css';
 import { ClerkProvider } from '@clerk/nextjs';
 import { shadcn } from '@clerk/ui/themes';

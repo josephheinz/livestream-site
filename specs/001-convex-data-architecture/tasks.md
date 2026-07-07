@@ -17,9 +17,9 @@
 
 **Purpose**: Test tooling and workspace hygiene
 
-- [ ] T001 Add dev dependencies `vitest` and `convex-test`, and add `"test": "vitest run"` script, in package.json
-- [ ] T002 [P] Create vitest.config.ts at repo root configured for the `convex/` directory (edge-runtime environment per convex-test docs)
-- [ ] T003 [P] Delete template leftover convex/messages.ts
+- [X] T001 Add dev dependencies `vitest` and `convex-test`, and add `"test": "vitest run"` script, in package.json
+- [X] T002 [P] Create vitest.config.ts at repo root configured for the `convex/` directory (edge-runtime environment per convex-test docs)
+- [X] T003 [P] Delete template leftover convex/messages.ts
 
 ---
 
@@ -29,11 +29,11 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Create convex/schema.ts defining all 7 tables and indexes exactly per specs/001-convex-data-architecture/data-model.md (users, streams, chatMessages, reactions, customEmojis, clips, presenceSessions)
-- [ ] T005 Create convex/lib/auth.ts with `getCurrentUser(ctx)`, `requireUser(ctx)`, and `requireAdmin(ctx)` helpers (join Clerk identity → users row via by_externalId; requireAdmin throws unless `role === "admin"`)
-- [ ] T006 Create convex/users.ts with `me` query and `ensure` upsert mutation per contracts/convex-functions.md
-- [ ] T007 [P] Create convex/http.ts with the svix-verified `POST /clerk-users-webhook` HTTP action (user.created/updated → upsert; user.deleted → delete the users row only — chat messages remain per research D11); add `svix` dependency
-- [ ] T008 [P] Write convex/__tests__/users.test.ts covering: ensure creates then updates a user; me returns null anonymously; requireAdmin rejects non-admins
+- [X] T004 Create convex/schema.ts defining all 7 tables and indexes exactly per specs/001-convex-data-architecture/data-model.md (users, streams, chatMessages, reactions, customEmojis, clips, presenceSessions)
+- [X] T005 Create convex/lib/auth.ts with `getCurrentUser(ctx)`, `requireUser(ctx)`, and `requireAdmin(ctx)` helpers (join Clerk identity → users row via by_externalId; requireAdmin throws unless `role === "admin"`)
+- [X] T006 Create convex/users.ts with `me` query and `ensure` upsert mutation per contracts/convex-functions.md
+- [X] T007 [P] Create convex/http.ts with the svix-verified `POST /clerk-users-webhook` HTTP action (user.created/updated → upsert; user.deleted → delete the users row only — chat messages remain per research D11); add `svix` dependency
+- [X] T008 [P] Write convex/__tests__/users.test.ts covering: ensure creates then updates a user; me returns null anonymously; requireAdmin rejects non-admins
 
 **Checkpoint**: Schema deployed, identity flows work — user stories can now proceed (even in parallel)
 
@@ -47,12 +47,12 @@
 
 ### Tests for User Story 1
 
-- [ ] T009 [P] [US1] Write convex/__tests__/streams.lifecycle.test.ts (failing first): create → goLive → end transitions; goLive rejects when another stream is live (research D2); goLive/end/create reject for non-admins; invalid transitions (end a scheduled stream) throw; **sanitization (SC-009): getLive/get return `/stream/live.m3u8` (never origin liveUrl) to non-admins, origin URLs to admins**
+- [X] T009 [P] [US1] Write convex/__tests__/streams.lifecycle.test.ts (failing first): create → goLive → end transitions; goLive rejects when another stream is live (research D2); goLive/end/create reject for non-admins; invalid transitions (end a scheduled stream) throw; **sanitization (SC-009): getLive/get return `/stream/live.m3u8` (never origin liveUrl) to non-admins, origin URLs to admins**
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Create convex/streams.ts with `getLive` and `get` queries plus `create`, `goLive`, `end` admin mutations per contracts/convex-functions.md (transactional single-live check inside goLive; set actualStart/actualEnd; URL sanitization per research D15, incl. an internal query resolving streamId → origin URL for the proxy)
-- [ ] T011 [US1] Create app/stream/[[...path]]/route.ts — same-origin HLS proxy (`/stream/live.m3u8`, `/stream/vod/<streamId>.m3u8`) relaying playlist + segments from node-media-server via the internal origin-URL query; NMS host/key only in server env (research D15). Verify explicitly: private-VOD paths 404 without an admin Clerk session and serve with one; `/stream/live.m3u8` 404s when nothing is live
+- [X] T010 [US1] Create convex/streams.ts with `getLive` and `get` queries plus `create`, `goLive`, `end` admin mutations per contracts/convex-functions.md (transactional single-live check inside goLive; set actualStart/actualEnd; URL sanitization per research D15, incl. an internal query resolving streamId → origin URL for the proxy)
+- [X] T011 [US1] Create app/stream/[[...path]]/route.ts — same-origin HLS proxy (`/stream/live.m3u8`, `/stream/vod/<streamId>.m3u8`) relaying playlist + segments from node-media-server via the internal origin-URL query; NMS host/key only in server env (research D15). Verify explicitly: private-VOD paths 404 without an admin Clerk session and serve with one; `/stream/live.m3u8` 404s when nothing is live
 
 **Checkpoint**: T009 suite green + proxy serves `/stream/live/<id>.m3u8` — MVP data layer done
 
@@ -66,11 +66,11 @@
 
 ### Tests for User Story 2
 
-- [ ] T012 [P] [US2] Write convex/__tests__/streams.listings.test.ts (failing first): listUpcoming excludes live/ended/canceled and orders by scheduledStart; listArchive excludes ended-without-recording and orders newest-first; listArchive/get hide private VODs from non-admins but not from admins; listArchive returns proxy paths to non-admins (SC-009); setVisibility and attachRecording admin-only, attachRecording only valid on ended; cancel only valid from scheduled; update edits metadata without changing status
+- [X] T012 [P] [US2] Write convex/__tests__/streams.listings.test.ts (failing first): listUpcoming excludes live/ended/canceled and orders by scheduledStart; listArchive excludes ended-without-recording and orders newest-first; listArchive/get hide private VODs from non-admins but not from admins; listArchive returns proxy paths to non-admins (SC-009); setVisibility and attachRecording admin-only, attachRecording only valid on ended; cancel only valid from scheduled; update edits metadata without changing status
 
 ### Implementation for User Story 2
 
-- [ ] T013 [US2] Extend convex/streams.ts with `listUpcoming` and `listArchive` queries plus `update`, `attachRecording`, `setVisibility`, `cancel` admin mutations per contracts/convex-functions.md (visibility checks + URL sanitization at read time per research D13/D15)
+- [X] T013 [US2] Extend convex/streams.ts with `listUpcoming` and `listArchive` queries plus `update`, `attachRecording`, `setVisibility`, `cancel` admin mutations per contracts/convex-functions.md (visibility checks + URL sanitization at read time per research D13/D15)
 
 **Checkpoint**: Schedule and archive fully derivable; US1 unaffected
 
@@ -84,16 +84,16 @@
 
 ### Tests for User Story 3
 
-- [ ] T014 [P] [US3] Write convex/__tests__/chat.test.ts (failing first): send requires auth + live stream (FR-013/FR-017); 2s rate limit rejects rapid second message (research D5); remove is admin-only and hides message from list; body validation (empty / >500 chars); a message whose author row was deleted lists with the "Deleted user" fallback (research D11)
-- [ ] T015 [P] [US3] Write convex/__tests__/presence.test.ts (failing first): heartbeat upserts by (streamId, sessionId); count includes only sessions with lastSeen within 60s (research D4); leave deletes the session
-- [ ] T016 [P] [US3] Write convex/__tests__/reactions.test.ts (failing first): send requires auth + live stream; unicode-emoji kind accepted; `custom:<id>` kind accepted only for existing active custom emojis, rejected when inactive/unknown; recent returns only trailing-30s reactions
+- [X] T014 [P] [US3] Write convex/__tests__/chat.test.ts (failing first): send requires auth + live stream (FR-013/FR-017); 2s rate limit rejects rapid second message (research D5); remove is admin-only and hides message from list; body validation (empty / >500 chars); a message whose author row was deleted lists with the "Deleted user" fallback (research D11)
+- [X] T015 [P] [US3] Write convex/__tests__/presence.test.ts (failing first): heartbeat upserts by (streamId, sessionId); count includes only sessions with lastSeen within 60s (research D4); leave deletes the session
+- [X] T016 [P] [US3] Write convex/__tests__/reactions.test.ts (failing first): send requires auth + live stream; unicode-emoji kind accepted; `custom:<id>` kind accepted only for existing active custom emojis, rejected when inactive/unknown; recent returns only trailing-30s reactions
 
 ### Implementation for User Story 3
 
-- [ ] T017 [P] [US3] Create convex/chat.ts with `list` query (last 100, non-removed, joined author name/avatar with "Deleted user" fallback) and `send`, `remove` mutations per contracts/convex-functions.md
-- [ ] T018 [P] [US3] Create convex/presence.ts with `count` query and `heartbeat`, `leave` mutations per contracts/convex-functions.md
-- [ ] T019 [P] [US3] Create convex/reactions.ts with `recent` query and `send` mutation (kind validation per research D6) per contracts/convex-functions.md
-- [ ] T020 [US3] Create convex/crons.ts with `purgeStalePresence` (every 5 min, lastSeen > 5 min old) and `purgeOldReactions` (hourly, older than 1h) plus their internal mutations
+- [X] T017 [P] [US3] Create convex/chat.ts with `list` query (last 100, non-removed, joined author name/avatar with "Deleted user" fallback) and `send`, `remove` mutations per contracts/convex-functions.md
+- [X] T018 [P] [US3] Create convex/presence.ts with `count` query and `heartbeat`, `leave` mutations per contracts/convex-functions.md
+- [X] T019 [P] [US3] Create convex/reactions.ts with `recent` query and `send` mutation (kind validation per research D6) per contracts/convex-functions.md
+- [X] T020 [US3] Create convex/crons.ts with `purgeStalePresence` (every 5 min, lastSeen > 5 min old) and `purgeOldReactions` (hourly, older than 1h) plus their internal mutations
 
 **Checkpoint**: Full interactivity layer green; US1/US2 unaffected
 
@@ -109,11 +109,11 @@
 
 ### Tests
 
-- [ ] T021 [P] [US3] Write convex/__tests__/emojis.test.ts (failing first): create/deactivate are admin-only; list returns only active emojis with resolved image URLs; deactivated emoji rejected by reactions.send (pairs with T016)
+- [X] T021 [P] [US3] Write convex/__tests__/emojis.test.ts (failing first): create/deactivate are admin-only; list returns only active emojis with resolved image URLs; deactivated emoji rejected by reactions.send (pairs with T016)
 
 ### Implementation
 
-- [ ] T022 [US3] Create convex/emojis.ts with `list` query and `generateUploadUrl`, `create`, `deactivate` admin mutations per contracts/convex-functions.md (research D10)
+- [X] T022 [US3] Create convex/emojis.ts with `list` query and `generateUploadUrl`, `create`, `deactivate` admin mutations per contracts/convex-functions.md (research D10)
 
 **Checkpoint**: Interactivity + custom emojis green
 
@@ -129,11 +129,11 @@
 
 ### Tests
 
-- [ ] T023 [P] [US5] Write convex/__tests__/clips.test.ts (failing first): create requires auth + archived public source; rejects duration >15s, inverted bounds, title >100 chars; list/get hide clips of private VODs from non-admins but not admins or after re-publicizing; clip payloads carry proxy paths, not origin URLs (SC-009); remove allowed for creator and admin only; mine returns caller's clips
+- [X] T023 [P] [US5] Write convex/__tests__/clips.test.ts (failing first): create requires auth + archived public source; rejects duration >15s, inverted bounds, title >100 chars; list/get hide clips of private VODs from non-admins but not admins or after re-publicizing; clip payloads carry proxy paths, not origin URLs (SC-009); remove allowed for creator and admin only; mine returns caller's clips
 
 ### Implementation
 
-- [ ] T024 [US5] Create convex/clips.ts with `list`, `get`, `mine` queries and `create`, `remove` mutations per contracts/convex-functions.md (visibility derived from source stream at read time per research D13/D14; URL sanitization per D15)
+- [X] T024 [US5] Create convex/clips.ts with `list`, `get`, `mine` queries and `create`, `remove` mutations per contracts/convex-functions.md (visibility derived from source stream at read time per research D13/D14; URL sanitization per D15)
 
 **Checkpoint**: All five stories independently green
 
@@ -141,9 +141,9 @@
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T025 Run full gate: `pnpm test`, `pnpm exec tsc --noEmit`, `pnpm lint` — fix anything red
-- [ ] T026 Execute the manual two-browser validation in specs/001-convex-data-architecture/quickstart.md against `npx convex dev` + `pnpm dev`
-- [ ] T027 [P] Record the load-bearing decisions (derived views, transactional single-live invariant, heartbeat presence with documented ceiling, URL-only video references, read-time visibility, same-origin HLS proxy) in docs/ADR.md
+- [X] T025 Run full gate: `pnpm test`, `pnpm exec tsc --noEmit`, `pnpm lint` — fix anything red
+- [ ] T026 Execute the manual two-browser validation in specs/001-convex-data-architecture/quickstart.md against `npx convex dev` + `pnpm dev` — **requires a human + node-media-server; automated invariants (quickstart "Automated validation") are green**
+- [X] T027 [P] Record the load-bearing decisions (derived views, transactional single-live invariant, heartbeat presence with documented ceiling, URL-only video references, read-time visibility, same-origin HLS proxy) in docs/ADR.md
 
 ---
 
