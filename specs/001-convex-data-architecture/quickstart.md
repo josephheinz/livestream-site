@@ -27,6 +27,7 @@ The suite must cover the four invariants from [research.md](research.md):
 3. **Reaction kinds** (D6/D10): unicode emoji accepted; `custom:<id>` accepted only while that emoji is active; emoji create/deactivate admin-only.
 4. **Presence freshness** (D4): sessions with stale `lastSeen` don't count; heartbeat revives.
 5. **Clips & visibility** (D13/D14): clip creation bounds (≤15s, public archived source only); private VODs and their clips invisible to non-admins, visible to admins, restored when re-publicized.
+6. **URL sanitization** (D15/SC-009): every non-admin payload from streams/clips queries carries `/stream/...` proxy paths and zero origin URLs; admins receive origin URLs.
 
 ## Manual end-to-end check (two browsers)
 
@@ -40,5 +41,6 @@ The suite must cover the four invariants from [research.md](research.md):
 8. Admin runs `attachRecording` with the URL of the file node-media-server recorded → the stream appears in the archive, newest-first, and plays (FR-011/SC-005).
 9. A creates a 15s clip from the archived VOD → it appears instantly and plays just that segment (FR-020/SC-008). B can watch it anonymously.
 10. Admin sets the VOD private → the VOD and A's clip vanish for B; admin still sees both (FR-019/SC-008). Set it public again → both return.
+11. In B's devtools (Network tab), confirm video plays from `https://<site>/stream/...m3u8` and no payload anywhere contains the node-media-server host or stream key (FR-022/SC-009).
 
 Expected outcome: every step observes changes reactively — zero manual refreshes anywhere. Entities and rules referenced: [data-model.md](data-model.md); function surface: [contracts/convex-functions.md](contracts/convex-functions.md).

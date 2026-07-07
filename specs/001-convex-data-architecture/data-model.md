@@ -32,8 +32,8 @@ The central entity — schedule, live view, and archive are all queries over it 
 | `actualStart` | `v.optional(v.number())` | set by `goLive` |
 | `actualEnd` | `v.optional(v.number())` | set by `end` |
 | `status` | `v.union(v.literal("scheduled"), v.literal("live"), v.literal("ended"), v.literal("canceled"))` | |
-| `liveUrl` | `v.optional(v.string())` | HLS manifest served by node-media-server for the live broadcast |
-| `recordingUrl` | `v.optional(v.string())` | URL of the recording node-media-server captured; presence ⇒ archived/playable |
+| `liveUrl` | `v.optional(v.string())` | **origin** HLS URL on node-media-server (may embed the stream key) — never returned to non-admins (FR-022) |
+| `recordingUrl` | `v.optional(v.string())` | **origin** URL of the captured recording; presence ⇒ archived/playable — never returned to non-admins (FR-022) |
 | `visibility` | `v.union(v.literal("public"), v.literal("private"))` | archive/VOD visibility (FR-019); private hides the VOD and its clips from non-admins |
 
 **Indexes**: `by_status` on `["status", "scheduledStart"]` — serves "the live stream" (at most one row), "upcoming, soonest first" (range on scheduledStart), and "archive" (status ended, newest-first via order desc, filter recordingUrl set).
@@ -52,6 +52,7 @@ scheduled ──cancel──▶ canceled
 - `cancel`: only from `scheduled` — handles the "never went live" edge case.
 - No hard deletes; `canceled`/`ended` rows are retained (spec assumption).
 - Rows are created with `visibility: "public"`.
+- **URL sanitization (FR-022)**: every public read path strips `liveUrl`/`recordingUrl` and substitutes same-origin proxy paths (e.g., `/stream/live/<streamId>.m3u8`, `/stream/vod/<streamId>.m3u8`); the proxy layer maps those paths back to origin URLs server-side. Origin URLs appear only in admin reads.
 
 ### chatMessages
 

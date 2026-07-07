@@ -4,6 +4,8 @@ The public API this feature exposes to the Next.js frontend. File layout mirrors
 
 Auth notes: **public** = callable anonymously; **auth** = requires Clerk identity; **admin** = requires identity whose user row has `role: "admin"` (server-checked, throws otherwise).
 
+**URL sanitization (FR-022)**: every stream/clip object returned to a non-admin has `liveUrl`/`recordingUrl` replaced with same-origin proxy paths (`/stream/live/<streamId>.m3u8`, `/stream/vod/<streamId>.m3u8`). The raw origin URLs — which can embed the node-media-server stream key — are returned only to admins.
+
 ## Queries (reactive subscriptions)
 
 | Function | Args | Returns | Auth |
@@ -13,7 +15,7 @@ Auth notes: **public** = callable anonymously; **auth** = requires Clerk identit
 | `streams.listArchive` | `{ limit? }` | `Stream[]` ended with recordingUrl, newest first; private VODs included only for admins | public |
 | `streams.get` | `{ streamId }` | `Stream \| null`; a private VOD returns null for non-admins | public |
 | `clips.list` | `{ streamId }` | non-removed clips of that VOD, newest first; empty for non-admins if the VOD is private | public |
-| `clips.get` | `{ clipId }` | `Clip \| null` (with source recordingUrl) for share pages; null for non-admins if source is private | public |
+| `clips.get` | `{ clipId }` | `Clip \| null` (with the source's playback path, sanitized per FR-022) for share pages; null for non-admins if source is private | public |
 | `clips.mine` | — | caller's clips, newest first | auth |
 | `chat.list` | `{ streamId }` | last 100 non-removed messages with author name/avatar (deleted authors → "Deleted user" fallback), oldest→newest | public |
 | `reactions.recent` | `{ streamId }` | reactions from the trailing 30s | public |
@@ -43,6 +45,13 @@ Auth notes: **public** = callable anonymously; **auth** = requires Clerk identit
 | `emojis.deactivate` | `{ emojiId }` | Sets `active: false`; new reactions with it are rejected | admin |
 | `presence.heartbeat` | `{ streamId, sessionId }` | Upsert session row, refresh `lastSeen`; attaches userId if signed in | public |
 | `presence.leave` | `{ streamId, sessionId }` | Delete session row (clean disconnect) | public |
+
+## Web-layer HLS proxy (Next.js, `app/stream/[[...path]]/route.ts`)
+
+| Route | Behavior |
+|---|---|
+| `GET /stream/live/<streamId>.m3u8` (+ segment subpaths) | Looks up the stream's origin `liveUrl` server-side (Convex internal query) and relays playlist + segments from node-media-server. Origin host and stream key never appear in the response. |
+| `GET /stream/vod/<streamId>.m3u8` (+ segment subpaths) | Same relay for the recording; returns 404 for private VODs unless the caller is an admin. |
 
 ## HTTP actions (`convex/http.ts`)
 

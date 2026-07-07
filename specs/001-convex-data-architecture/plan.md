@@ -24,7 +24,7 @@ Model the livestream domain in Convex around one central `streams` table whose l
 
 **Performance Goals**: Go-live visible to all clients <5s (SC-001); chat propagation <2s (SC-006); viewer count within 10% / stale-drop <60s (SC-007)
 
-**Constraints**: Anonymous viewing everywhere except posting; at most one live stream; no stored counters; soft-delete moderation; video bytes stay on the node-media-server host (Convex stores URLs only); no playback-position tracking (deferred)
+**Constraints**: Anonymous viewing everywhere except posting; at most one live stream; no stored counters; soft-delete moderation; video bytes stay on the node-media-server host (Convex stores URLs only); origin URLs/stream keys never reach non-admin clients — same-origin HLS proxy (FR-022); no playback-position tracking (deferred)
 
 **Scale/Scope**: Single channel/tenant; audiences ~hundreds of concurrent viewers (presence count-on-read ceiling noted in research D4)
 
@@ -39,7 +39,7 @@ Model the livestream domain in Convex around one central `streams` table whose l
 ```text
 specs/001-convex-data-architecture/
 ├── plan.md              # This file
-├── research.md          # Phase 0 — 14 design decisions (D1–D14; D7 removed post-analysis)
+├── research.md          # Phase 0 — 15 design decisions (D1–D15; D7 removed post-analysis)
 ├── data-model.md        # Phase 1 — 6 tables, indexes, transitions
 ├── quickstart.md        # Phase 1 — automated + manual validation guide
 ├── contracts/
@@ -67,7 +67,9 @@ convex/
 
 convex/__tests__/        # NEW — convex-test suites per domain file
 
-app/                     # consumes via convex/react hooks (wiring is a later feature)
+app/
+└── stream/[[...path]]/route.ts  # NEW — same-origin HLS proxy (hides NMS origin + stream key, research D15)
+                         # rest of app/ consumes via convex/react hooks (wiring is a later feature)
 ```
 
 **Structure Decision**: Flat one-file-per-domain in `convex/` (Convex's canonical layout — file name becomes the API namespace, e.g. `api.streams.goLive`). Shared auth guards in `convex/lib/`. Frontend components are out of scope for this feature beyond the read/write patterns documented in the contract.

@@ -133,6 +133,7 @@ A signed-in viewer watching an archived broadcast (VOD) marks a moment — up to
 - **FR-019**: Each archived stream (VOD) MUST have a visibility of public or private (default public), changeable by administrators. Private VODs — and everything derived from them (archive listings, clips) — are hidden from non-admin viewers.
 - **FR-020**: Signed-in users MUST be able to create clips from a public VOD: a reference to the VOD plus start/end timestamps, duration ≤ 15 seconds, optional title. Clips involve no video processing and are available immediately; anyone (including anonymous viewers) can view clips of public VODs.
 - **FR-021**: A clip MUST be removable by its creator or an administrator; removed clips disappear from all listings.
+- **FR-022**: The streaming server's stream key and origin address MUST never be sent to non-admin clients — not in playback URLs, query payloads, or errors. Client-visible playback URLs MUST be same-origin paths (e.g., `https://<site>/stream/live.m3u8`) resolved to the real media-server URL by a server-side proxy/rewrite. Stored origin URLs are returned only to administrators (who supplied them).
 
 ### Key Entities
 
@@ -156,6 +157,7 @@ A signed-in viewer watching an archived broadcast (VOD) marks a moment — up to
 - **SC-006**: A posted chat message is visible to all connected viewers within 2 seconds.
 - **SC-007**: The displayed viewer count is within 10% of actual connected viewers, and stale sessions stop counting within 60 seconds of disconnect.
 - **SC-008**: Creating a clip completes instantly (no processing wait), and a private VOD is invisible to non-admin viewers in 100% of listings, including its clips.
+- **SC-009**: Zero occurrences of the media server's origin address or stream key in any payload delivered to a non-admin client.
 
 ## Assumptions
 
@@ -171,5 +173,6 @@ A signed-in viewer watching an archived broadcast (VOD) marks a moment — up to
 - Chat history is retained after a stream ends and may be shown read-only alongside the archived recording. Reactions need not be retained long-term.
 - Moderation scope for v1 is message removal only; bans/mutes/timeouts are out of scope.
 - Custom emoji images are small (≤256 KB) static images; image content moderation is the admin's own judgment (admins are the only uploaders).
-- VOD privacy is listing-level: the data layer withholds private VODs (and their clips) from non-admins, but the recording file itself lives on the media server and is fetchable by anyone who already has its exact URL. File-level protection (e.g., signed URLs on the media server) is an ops concern outside this spec.
+- VOD privacy is listing-level: the data layer withholds private VODs (and their clips) from non-admins, but the recording file itself lives on the media server and is fetchable by anyone who already has its exact URL. File-level protection (e.g., signed URLs on the media server) is an ops concern outside this spec. The same-origin proxy (FR-022) mitigates this by never revealing origin URLs in the first place.
+- The HLS proxy must relay both the playlist (.m3u8) and its media segments, since playlists reference segment files. The media server's publish-auth (node-media-server's sign-secret) should also be enabled so a leaked path can never be used to broadcast — complementary ops hardening, not a substitute for FR-022.
 - Clip playback is client-side: the player seeks the source recording to the clip's start and stops at its end. No server-side video processing, ever, in this spec.
