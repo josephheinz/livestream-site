@@ -133,7 +133,7 @@ A signed-in viewer watching an archived broadcast (VOD) marks a moment — up to
 - **FR-019**: Each archived stream (VOD) MUST have a visibility of public or private (default public), changeable by administrators. Private VODs — and everything derived from them (archive listings, clips) — are hidden from non-admin viewers.
 - **FR-020**: Signed-in users MUST be able to create clips from a public VOD: a reference to the VOD plus start/end timestamps, duration ≤ 15 seconds, optional title. Clips involve no video processing and are available immediately; anyone (including anonymous viewers) can view clips of public VODs.
 - **FR-021**: A clip MUST be removable by its creator or an administrator; removed clips disappear from all listings.
-- **FR-022**: The streaming server's stream key and origin address MUST never be sent to non-admin clients — not in playback URLs, query payloads, or errors. Client-visible playback URLs MUST be same-origin paths (e.g., `https://<site>/stream/live.m3u8`) resolved to the real media-server URL by a server-side proxy/rewrite. Stored origin URLs are returned only to administrators (who supplied them).
+- **FR-022**: The streaming server's stream key and origin address MUST never be sent to non-admin clients — not in playback URLs, query payloads, or errors. Client-visible playback URLs MUST be same-origin paths — `/stream/live.m3u8` for the live stream (no ID needed; at most one stream is ever live) and `/stream/vod/<streamId>.m3u8` for recordings — resolved to the real media-server URL by a server-side proxy/rewrite. Stored origin URLs are returned only to administrators (who supplied them).
 
 ### Key Entities
 

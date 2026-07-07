@@ -52,7 +52,7 @@ scheduled ──cancel──▶ canceled
 - `cancel`: only from `scheduled` — handles the "never went live" edge case.
 - No hard deletes; `canceled`/`ended` rows are retained (spec assumption).
 - Rows are created with `visibility: "public"`.
-- **URL sanitization (FR-022)**: every public read path strips `liveUrl`/`recordingUrl` and substitutes same-origin proxy paths (e.g., `/stream/live/<streamId>.m3u8`, `/stream/vod/<streamId>.m3u8`); the proxy layer maps those paths back to origin URLs server-side. Origin URLs appear only in admin reads.
+- **URL sanitization (FR-022)**: every public read path strips `liveUrl`/`recordingUrl` and substitutes same-origin proxy paths (`/stream/live.m3u8` for the single live stream, `/stream/vod/<streamId>.m3u8` for recordings); the proxy layer maps those paths back to origin URLs server-side. Origin URLs appear only in admin reads.
 
 ### chatMessages
 

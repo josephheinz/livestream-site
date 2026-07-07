@@ -4,7 +4,7 @@ The public API this feature exposes to the Next.js frontend. File layout mirrors
 
 Auth notes: **public** = callable anonymously; **auth** = requires Clerk identity; **admin** = requires identity whose user row has `role: "admin"` (server-checked, throws otherwise).
 
-**URL sanitization (FR-022)**: every stream/clip object returned to a non-admin has `liveUrl`/`recordingUrl` replaced with same-origin proxy paths (`/stream/live/<streamId>.m3u8`, `/stream/vod/<streamId>.m3u8`). The raw origin URLs — which can embed the node-media-server stream key — are returned only to admins.
+**URL sanitization (FR-022)**: every stream/clip object returned to a non-admin has `liveUrl`/`recordingUrl` replaced with same-origin proxy paths (`/stream/live.m3u8` for the single live stream, `/stream/vod/<streamId>.m3u8` for recordings). The raw origin URLs — which can embed the node-media-server stream key — are returned only to admins.
 
 ## Queries (reactive subscriptions)
 
@@ -50,8 +50,8 @@ Auth notes: **public** = callable anonymously; **auth** = requires Clerk identit
 
 | Route | Behavior |
 |---|---|
-| `GET /stream/live/<streamId>.m3u8` (+ segment subpaths) | Looks up the stream's origin `liveUrl` server-side (Convex internal query) and relays playlist + segments from node-media-server. Origin host and stream key never appear in the response. |
-| `GET /stream/vod/<streamId>.m3u8` (+ segment subpaths) | Same relay for the recording; returns 404 for private VODs unless the caller is an admin. |
+| `GET /stream/live.m3u8` (+ segment subpaths) | Resolves the currently live stream's origin `liveUrl` server-side (Convex internal query) and relays playlist + segments from node-media-server; 404 when nothing is live. Origin host and stream key never appear in the response. |
+| `GET /stream/vod/<streamId>.m3u8` (+ segment subpaths) | Same relay for the recording; returns 404 for private VODs unless the caller has an admin session (Clerk-checked in the route). |
 
 ## HTTP actions (`convex/http.ts`)
 

@@ -47,12 +47,12 @@
 
 ### Tests for User Story 1
 
-- [ ] T009 [P] [US1] Write convex/__tests__/streams.lifecycle.test.ts (failing first): create → goLive → end transitions; goLive rejects when another stream is live (research D2); goLive/end/create reject for non-admins; invalid transitions (end a scheduled stream) throw; **sanitization (SC-009): getLive/get return proxy paths (never origin liveUrl) to non-admins, origin URLs to admins**
+- [ ] T009 [P] [US1] Write convex/__tests__/streams.lifecycle.test.ts (failing first): create → goLive → end transitions; goLive rejects when another stream is live (research D2); goLive/end/create reject for non-admins; invalid transitions (end a scheduled stream) throw; **sanitization (SC-009): getLive/get return `/stream/live.m3u8` (never origin liveUrl) to non-admins, origin URLs to admins**
 
 ### Implementation for User Story 1
 
 - [ ] T010 [US1] Create convex/streams.ts with `getLive` and `get` queries plus `create`, `goLive`, `end` admin mutations per contracts/convex-functions.md (transactional single-live check inside goLive; set actualStart/actualEnd; URL sanitization per research D15, incl. an internal query resolving streamId → origin URL for the proxy)
-- [ ] T011 [US1] Create app/stream/[[...path]]/route.ts — same-origin HLS proxy relaying playlist + segments from node-media-server via the internal origin-URL query; NMS host/key only in server env (research D15); 404 for private VODs to non-admins
+- [ ] T011 [US1] Create app/stream/[[...path]]/route.ts — same-origin HLS proxy (`/stream/live.m3u8`, `/stream/vod/<streamId>.m3u8`) relaying playlist + segments from node-media-server via the internal origin-URL query; NMS host/key only in server env (research D15). Verify explicitly: private-VOD paths 404 without an admin Clerk session and serve with one; `/stream/live.m3u8` 404s when nothing is live
 
 **Checkpoint**: T009 suite green + proxy serves `/stream/live/<id>.m3u8` — MVP data layer done
 
