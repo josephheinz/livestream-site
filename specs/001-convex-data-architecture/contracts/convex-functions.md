@@ -1,0 +1,56 @@
+# Contracts: Convex Function Surface
+
+The public API this feature exposes to the Next.js frontend. File layout mirrors domains: `convex/users.ts`, `convex/streams.ts`, `convex/chat.ts`, `convex/reactions.ts`, `convex/presence.ts`, `convex/playback.ts`, `convex/http.ts`, `convex/crons.ts`.
+
+Auth notes: **public** = callable anonymously; **auth** = requires Clerk identity; **admin** = requires identity whose user row has `role: "admin"` (server-checked, throws otherwise).
+
+## Queries (reactive subscriptions)
+
+| Function | Args | Returns | Auth |
+|---|---|---|---|
+| `streams.getLive` | — | `Stream \| null` (the at-most-one live stream) | public |
+| `streams.listUpcoming` | — | `Stream[]` scheduled, soonest first | public |
+| `streams.listArchive` | `{ limit? }` | `Stream[]` ended with recordingUrl, newest first | public |
+| `streams.get` | `{ streamId }` | `Stream \| null` | public |
+| `chat.list` | `{ streamId }` | last 100 non-removed messages with author name/avatar, oldest→newest | public |
+| `reactions.recent` | `{ streamId }` | reactions from the trailing 30s | public |
+| `presence.count` | `{ streamId }` | `number` of fresh sessions | public |
+| `playback.get` | `{ streamId }` | `{ position, updatedAt } \| null` for the caller | auth |
+| `users.me` | — | `User \| null` for the caller | public (null if anon) |
+
+## Mutations
+
+| Function | Args | Behavior | Auth |
+|---|---|---|---|
+| `users.ensure` | — | Upsert caller's user row from Clerk identity (webhook gap-filler) | auth |
+| `streams.create` | `{ title, description?, scheduledStart, liveUrl? }` | New `scheduled` stream | admin |
+| `streams.update` | `{ streamId, ...editable fields }` | Edit schedule metadata / liveUrl | admin |
+| `streams.goLive` | `{ streamId }` | `scheduled → live`; **throws if another stream is live**; sets `actualStart` | admin |
+| `streams.end` | `{ streamId }` | `live → ended`; sets `actualEnd` | admin |
+| `streams.attachRecording` | `{ streamId, recordingUrl }` | Only on `ended`; makes it archived/playable | admin |
+| `streams.cancel` | `{ streamId }` | `scheduled → canceled` | admin |
+| `chat.send` | `{ streamId, body }` | Validates: stream live, body 1–500 chars, ≥2s since sender's last message | auth |
+| `chat.remove` | `{ messageId }` | Sets `removed: true` | admin |
+| `reactions.send` | `{ streamId, kind }` | Validates: stream live, kind in allowlist | auth |
+| `presence.heartbeat` | `{ streamId, sessionId }` | Upsert session row, refresh `lastSeen`; attaches userId if signed in | public |
+| `presence.leave` | `{ streamId, sessionId }` | Delete session row (clean disconnect) | public |
+| `playback.save` | `{ streamId, position, updatedAt }` | Upsert; **ignored if stored `updatedAt` is newer** | auth |
+
+## HTTP actions (`convex/http.ts`)
+
+| Route | Source | Behavior |
+|---|---|---|
+| `POST /clerk-users-webhook` | Clerk webhook (svix-signed; signature verified, else 400) | `user.created`/`user.updated` → upsert users row; `user.deleted` → delete users row + cascade playbackStates |
+
+## Crons (`convex/crons.ts`)
+
+| Job | Schedule | Behavior |
+|---|---|---|
+| `purgeStalePresence` | every 5 min | Delete presenceSessions with `lastSeen` older than 5 min |
+| `purgeOldReactions` | hourly | Delete reactions older than 1h |
+
+## Frontend data-flow summary
+
+- **Read path**: components use `useQuery` (via `convex/react`) — every query above is a live subscription; go-live, chat, counts, and archive updates push automatically (FR-003).
+- **Write path**: `useMutation` for viewer actions (chat, reactions, playback saves, heartbeats) and admin lifecycle actions.
+- **Identity**: Clerk provides the JWT (`auth.config.ts` already wired); Convex functions read it via `ctx.auth.getUserIdentity()` and join to `users` by `externalId`.
