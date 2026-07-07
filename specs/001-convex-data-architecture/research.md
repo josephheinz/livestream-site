@@ -4,7 +4,7 @@ All spec-level ambiguities were resolved during `/speckit-specify` (manual admin
 
 ## D1: Single source of truth for stream lifecycle
 
-- **Decision**: One `streams` table with a `status` union (`scheduled | live | ended | canceled`). Schedule and live view are queries over this table — no separate schedule table. *(Amended post-analysis: recordings/archives cut from this spec entirely — live-first site; a future recordings spec reintroduces them.)*
+- **Decision**: One `streams` table with a `status` union (`scheduled | live | ended | canceled`). Schedule, live view, and archive are queries over this table — no separate tables. "Archived" is derived: `status === "ended" && recordingUrl` set. *(History: archives were briefly cut during analysis remediation, then restored once recording was confirmed to happen on the node-media-server host — see D12. Playback resume stayed cut — see D7.)*
 - **Rationale**: FR-007/SC-005 forbid drift; derived views can't drift. Convex reactive queries make "what's live?" push to every client automatically.
 - **Alternatives considered**: Separate `schedules` and `archives` tables — rejected, classic sync bug farm.
 
@@ -66,3 +66,10 @@ All spec-level ambiguities were resolved during `/speckit-specify` (manual admin
 - **Decision**: Clerk `user.deleted` removes only the users row. Chat messages keep their dangling `userId`; `chat.list` resolves missing authors to a "Deleted user" fallback (null-safe join).
 - **Rationale**: Preserves visible chat history and the moderation audit trail while fully unlinking identity.
 - **Alternatives considered**: Cascade-delete messages — destroys history; sentinel-user rewrite — extra write fan-out for the same read behavior the fallback gives for free.
+
+## D12: Streaming server & recordings — node-media-server (FR-011)
+
+- **Decision**: RTMP ingest, HLS output, and recording all happen on the self-hosted node-media-server instance. Live playback = its HLS endpoint (`/live/<key>/index.m3u8`); recordings = the MP4/HLS files its trans/record task writes to the server's disk, served statically from the same host. Convex stores only the two URLs (`liveUrl`, `recordingUrl`) — video bytes never touch the database or Convex file storage.
+- **Rationale**: The recording is a free byproduct of the ingest server the site already needs; a serverless database is the wrong (and expensive) place for video. Storage/disk management is an ops concern on that host, outside this data model.
+- **Alternatives considered**: Uploading recordings to Convex file storage — rejected, wrong tool for multi-GB media. Managed video providers — rejected earlier by product decision (self-hosted).
+- **Future option (not v1)**: node-media-server emits `postPublish`/`donePublish` events that could automate goLive/end via a Convex HTTP action; FR-010 keeps lifecycle manual for now.

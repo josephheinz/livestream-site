@@ -57,21 +57,21 @@
 
 ---
 
-## Phase 4: User Story 2 - Viewer browses the schedule (Priority: P2)
+## Phase 4: User Story 2 - Viewer browses schedule and archives (Priority: P2)
 
-**Goal**: Upcoming listing derived from the same streams table; cancellation handled
+**Goal**: Upcoming and archive listings derived from the same streams table; recordings (captured by node-media-server) attachable by URL; cancellation handled
 
-**Independent Test**: Seeded fixtures — upcoming lists only future scheduled streams soonest-first; canceled streams vanish from it
+**Independent Test**: Seeded fixtures — upcoming lists only future scheduled streams soonest-first; archive lists only ended-with-recording newest-first; canceled streams vanish
 
 ### Tests for User Story 2
 
-- [ ] T011 [P] [US2] Write convex/__tests__/streams.listings.test.ts (failing first): listUpcoming excludes live/ended/canceled and orders by scheduledStart; cancel only valid from scheduled; update edits metadata without changing status
+- [ ] T011 [P] [US2] Write convex/__tests__/streams.listings.test.ts (failing first): listUpcoming excludes live/ended/canceled and orders by scheduledStart; listArchive excludes ended-without-recording and orders newest-first; attachRecording only valid on ended and admin-only; cancel only valid from scheduled; update edits metadata without changing status
 
 ### Implementation for User Story 2
 
-- [ ] T012 [US2] Extend convex/streams.ts with `listUpcoming` query plus `update` and `cancel` admin mutations per contracts/convex-functions.md
+- [ ] T012 [US2] Extend convex/streams.ts with `listUpcoming` and `listArchive` queries plus `update`, `attachRecording`, `cancel` admin mutations per contracts/convex-functions.md
 
-**Checkpoint**: Schedule fully derivable; US1 unaffected
+**Checkpoint**: Schedule and archive fully derivable; US1 unaffected
 
 ---
 

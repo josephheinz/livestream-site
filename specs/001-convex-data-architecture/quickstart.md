@@ -36,5 +36,6 @@ The suite must cover the four invariants from [research.md](research.md):
 5. A reacts with a unicode emoji and with the custom emoji → both render in B in real time (FR-015/FR-018).
 6. Admin removes the chat message → disappears in both. Admin deactivates the custom emoji → it leaves A's picker; new reactions with it fail.
 7. Admin runs `end` → both browsers reflect the ended state; chat compose closes (FR-017); the stream no longer appears in the schedule.
+8. Admin runs `attachRecording` with the URL of the file node-media-server recorded → the stream appears in the archive, newest-first, and plays (FR-011/SC-005).
 
 Expected outcome: every step observes changes reactively — zero manual refreshes anywhere. Entities and rules referenced: [data-model.md](data-model.md); function surface: [contracts/convex-functions.md](contracts/convex-functions.md).

@@ -10,6 +10,7 @@ Auth notes: **public** = callable anonymously; **auth** = requires Clerk identit
 |---|---|---|---|
 | `streams.getLive` | — | `Stream \| null` (the at-most-one live stream) | public |
 | `streams.listUpcoming` | — | `Stream[]` scheduled, soonest first | public |
+| `streams.listArchive` | `{ limit? }` | `Stream[]` ended with recordingUrl, newest first | public |
 | `streams.get` | `{ streamId }` | `Stream \| null` | public |
 | `chat.list` | `{ streamId }` | last 100 non-removed messages with author name/avatar (deleted authors → "Deleted user" fallback), oldest→newest | public |
 | `reactions.recent` | `{ streamId }` | reactions from the trailing 30s | public |
@@ -26,6 +27,7 @@ Auth notes: **public** = callable anonymously; **auth** = requires Clerk identit
 | `streams.update` | `{ streamId, ...editable fields }` | Edit schedule metadata / liveUrl | admin |
 | `streams.goLive` | `{ streamId }` | `scheduled → live`; **throws if another stream is live**; sets `actualStart` | admin |
 | `streams.end` | `{ streamId }` | `live → ended`; sets `actualEnd` | admin |
+| `streams.attachRecording` | `{ streamId, recordingUrl }` | Only on `ended`; makes it archived/playable (URL of the file node-media-server recorded) | admin |
 | `streams.cancel` | `{ streamId }` | `scheduled → canceled` | admin |
 | `chat.send` | `{ streamId, body }` | Validates: stream live, body 1–500 chars, ≥2s since sender's last message | auth |
 | `chat.remove` | `{ messageId }` | Sets `removed: true` | admin |
@@ -51,6 +53,6 @@ Auth notes: **public** = callable anonymously; **auth** = requires Clerk identit
 
 ## Frontend data-flow summary
 
-- **Read path**: components use `useQuery` (via `convex/react`) — every query above is a live subscription; go-live, chat, counts, and schedule updates push automatically (FR-003).
+- **Read path**: components use `useQuery` (via `convex/react`) — every query above is a live subscription; go-live, chat, counts, schedule, and archive updates push automatically (FR-003).
 - **Write path**: `useMutation` for viewer actions (chat, reactions, heartbeats) and admin actions (lifecycle, moderation, emoji management; emoji upload is generateUploadUrl → POST file → create).
 - **Identity**: Clerk provides the JWT (`auth.config.ts` already wired); Convex functions read it via `ctx.auth.getUserIdentity()` and join to `users` by `externalId`.

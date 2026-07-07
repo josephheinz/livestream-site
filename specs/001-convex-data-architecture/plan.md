@@ -6,7 +6,7 @@
 
 ## Summary
 
-Model the livestream domain in Convex around one central `streams` table whose lifecycle (`scheduled → live → ended/canceled`) derives every user-facing view — schedule and live player — so nothing can drift. This is a live-first site: recordings/archives and playback-position tracking are deferred to a future spec. `users` mirrors Clerk (webhook + session upsert); `chatMessages`, `reactions` (any unicode emoji or admin-uploaded custom emoji via `customEmojis` + Convex file storage), and `presenceSessions` hang off users×streams. All frontend reads are reactive Convex queries (go-live/chat/counts push automatically); all writes are validated mutations with invariants (single live stream, live-only chat, rate limits, active-emoji checks) enforced transactionally inside the mutation.
+Model the livestream domain in Convex around one central `streams` table whose lifecycle (`scheduled → live → ended [+recording] / canceled`) derives every user-facing view — schedule, live player, archive — so nothing can drift. Video lives entirely on the self-hosted node-media-server host (RTMP ingest, HLS out, recordings on its disk); Convex stores only URLs. Playback-position tracking is deferred. `users` mirrors Clerk (webhook + session upsert); `chatMessages`, `reactions` (any unicode emoji or admin-uploaded custom emoji via `customEmojis` + Convex file storage), and `presenceSessions` hang off users×streams. All frontend reads are reactive Convex queries (go-live/chat/counts push automatically); all writes are validated mutations with invariants (single live stream, live-only chat, rate limits, active-emoji checks) enforced transactionally inside the mutation.
 
 ## Technical Context
 
@@ -18,13 +18,13 @@ Model the livestream domain in Convex around one central `streams` table whose l
 
 **Testing**: vitest + `convex-test` (to be added; per docs/TESTING-CONSIDERATIONS.md every PR ships tests), `tsc --noEmit` gate
 
-**Target Platform**: Vercel (Next.js) + Convex cloud
+**Target Platform**: Vercel (Next.js) + Convex cloud + self-hosted node-media-server (RTMP ingest / HLS / recordings — outside this repo)
 
 **Project Type**: Web application — existing `app/` + `convex/` layout
 
 **Performance Goals**: Go-live visible to all clients <5s (SC-001); chat propagation <2s (SC-006); viewer count within 10% / stale-drop <60s (SC-007)
 
-**Constraints**: Anonymous viewing everywhere except posting; at most one live stream; no stored counters; soft-delete moderation; no recordings/VOD (deferred)
+**Constraints**: Anonymous viewing everywhere except posting; at most one live stream; no stored counters; soft-delete moderation; video bytes stay on the node-media-server host (Convex stores URLs only); no playback-position tracking (deferred)
 
 **Scale/Scope**: Single channel/tenant; audiences ~hundreds of concurrent viewers (presence count-on-read ceiling noted in research D4)
 

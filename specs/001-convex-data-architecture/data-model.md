@@ -22,7 +22,7 @@ Mirror of the Clerk identity. Created/updated by webhook + session upsert (resea
 
 ### streams
 
-The central entity — schedule and live view are both queries over it (research D1).
+The central entity — schedule, live view, and archive are all queries over it (research D1).
 
 | Field | Type | Notes |
 |---|---|---|
@@ -32,22 +32,23 @@ The central entity — schedule and live view are both queries over it (research
 | `actualStart` | `v.optional(v.number())` | set by `goLive` |
 | `actualEnd` | `v.optional(v.number())` | set by `end` |
 | `status` | `v.union(v.literal("scheduled"), v.literal("live"), v.literal("ended"), v.literal("canceled"))` | |
-| `liveUrl` | `v.optional(v.string())` | self-hosted HLS manifest for the live broadcast |
+| `liveUrl` | `v.optional(v.string())` | HLS manifest served by node-media-server for the live broadcast |
+| `recordingUrl` | `v.optional(v.string())` | URL of the recording node-media-server captured; presence ⇒ archived/playable |
 
-**Indexes**: `by_status` on `["status", "scheduledStart"]` — serves "the live stream" (at most one row) and "upcoming, soonest first" (range on scheduledStart).
+**Indexes**: `by_status` on `["status", "scheduledStart"]` — serves "the live stream" (at most one row), "upcoming, soonest first" (range on scheduledStart), and "archive" (status ended, newest-first via order desc, filter recordingUrl set).
 
 **State transitions** (all admin-only mutations, FR-008/FR-010):
 
 ```
-scheduled ──goLive──▶ live ──end──▶ ended
+scheduled ──goLive──▶ live ──end──▶ ended ──attachRecording──▶ ended+recordingUrl ("archived")
 scheduled ──cancel──▶ canceled
 ```
 
 - `goLive`: rejects if any other stream is live (transactional check, research D2); sets `actualStart`.
 - `end`: only from `live`; sets `actualEnd`.
+- `attachRecording`: only on `ended`; sets `recordingUrl` (the file node-media-server wrote to disk, served statically).
 - `cancel`: only from `scheduled` — handles the "never went live" edge case.
 - No hard deletes; `canceled`/`ended` rows are retained (spec assumption).
-- Recordings/archives deliberately absent — future spec (spec assumption).
 
 ### chatMessages
 
