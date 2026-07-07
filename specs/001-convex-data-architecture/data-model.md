@@ -34,6 +34,7 @@ The central entity — schedule, live view, and archive are all queries over it 
 | `status` | `v.union(v.literal("scheduled"), v.literal("live"), v.literal("ended"), v.literal("canceled"))` | |
 | `liveUrl` | `v.optional(v.string())` | HLS manifest served by node-media-server for the live broadcast |
 | `recordingUrl` | `v.optional(v.string())` | URL of the recording node-media-server captured; presence ⇒ archived/playable |
+| `visibility` | `v.union(v.literal("public"), v.literal("private"))` | archive/VOD visibility (FR-019); private hides the VOD and its clips from non-admins |
 
 **Indexes**: `by_status` on `["status", "scheduledStart"]` — serves "the live stream" (at most one row), "upcoming, soonest first" (range on scheduledStart), and "archive" (status ended, newest-first via order desc, filter recordingUrl set).
 
@@ -47,8 +48,10 @@ scheduled ──cancel──▶ canceled
 - `goLive`: rejects if any other stream is live (transactional check, research D2); sets `actualStart`.
 - `end`: only from `live`; sets `actualEnd`.
 - `attachRecording`: only on `ended`; sets `recordingUrl` (the file node-media-server wrote to disk, served statically).
+- `setVisibility`: admin-only toggle of `visibility`; orthogonal to lifecycle status.
 - `cancel`: only from `scheduled` — handles the "never went live" edge case.
 - No hard deletes; `canceled`/`ended` rows are retained (spec assumption).
+- Rows are created with `visibility: "public"`.
 
 ### chatMessages
 
@@ -91,6 +94,23 @@ Admin-managed reaction images (FR-018). Image bytes live in Convex file storage.
 
 **Rules**: Create/deactivate are admin-only. Rows are never hard-deleted while reactions may still reference them (reactions purge within 1h, so a deactivated emoji is safely deletable after that window — not automated in v1).
 
+### clips
+
+A pointer into a VOD (FR-020) — no video data of its own.
+
+| Field | Type | Notes |
+|---|---|---|
+| `streamId` | `v.id("streams")` | the source VOD (must be ended + recordingUrl set at creation) |
+| `userId` | `v.id("users")` | creator |
+| `start` | `v.number()` | seconds into the recording |
+| `end` | `v.number()` | seconds; `end > start`, `end - start ≤ 15` |
+| `title` | `v.optional(v.string())` | ≤100 chars |
+| `removed` | `v.boolean()` | soft-delete by creator or admin (FR-021) |
+
+**Indexes**: `by_stream` on `["streamId"]` (clips of a VOD), `by_user` on `["userId"]` ("my clips")
+
+**Rules**: Create requires auth + an archived, **public** source VOD; validation of start/end bounds happens in the mutation (duration is unknowable server-side — player clamps, spec edge case). Reads filter `removed` and drop clips whose source VOD is private unless the caller is admin — visibility is always derived from the source at read time, never copied.
+
 ### presenceSessions
 
 One per connected viewer per live stream — research D4.
@@ -111,6 +131,7 @@ One per connected viewer per live stream — research D4.
 ```
 users 1 ──── n chatMessages   n ──── 1 streams   (author may be deleted → fallback)
 users 1 ──── n reactions      n ──── 1 streams
+users 1 ──── n clips          n ──── 1 streams   (visibility derived from stream at read)
 users 0..1 ─ n presenceSessions n ── 1 streams   (userId optional — anonymous)
 reactions n ─(kind "custom:<id>")─ 1 customEmojis
 ```

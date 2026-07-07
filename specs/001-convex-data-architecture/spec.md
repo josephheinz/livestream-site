@@ -74,7 +74,25 @@ A viewer who signs in (Clerk) gets a matching account record in the backend auto
 2. **Given** a user updates their name/avatar in the auth provider, **When** the change propagates, **Then** the backend record reflects it.
 3. **Given** an anonymous viewer, **When** they watch any stream, **Then** nothing is persisted about them and nothing errors.
 
-> **Deferred**: Playback position tracking / resume was cut from this spec. This is a live-first site — pausing and resuming simply rejoins at the current live position, which requires no stored state. Recordings/VOD (and any resume behavior for them) will be a future spec.
+> **Deferred**: Playback position tracking / resume was cut from this spec. Pausing a live stream and resuming simply rejoins at the current live position, which requires no stored state.
+
+---
+
+### User Story 5 - Viewer clips a moment from a VOD (Priority: P5)
+
+A signed-in viewer watching an archived broadcast (VOD) marks a moment — up to 15 seconds — and saves it as a clip with an optional title. The clip is just a pointer (which VOD, start time, end time): it exists instantly, plays by seeking the original recording, and can be shared by link. Admins can make specific VODs private, which hides them — and every clip of them — from regular viewers.
+
+**Why this priority**: Delightful sharing feature, but it needs live streaming, archives, and identity all working first.
+
+**Independent Test**: On a public VOD, create a 15s clip as a signed-in user → it appears immediately and plays the right segment; make the VOD private as admin → the VOD and its clips disappear for regular viewers but remain for admins.
+
+**Acceptance Scenarios**:
+
+1. **Given** a public VOD, **When** a signed-in viewer saves a clip with valid start/end (≤15s), **Then** the clip is immediately listed and plays that segment of the recording.
+2. **Given** an anonymous viewer, **When** they attempt to create a clip, **Then** creation is rejected (viewing clips stays open to everyone).
+3. **Given** a clip whose start/end exceed 15 seconds or are inverted, **When** it is submitted, **Then** it is rejected.
+4. **Given** an admin marks a VOD private, **When** regular viewers browse the archive or clips, **Then** neither the VOD nor its clips appear; admins still see both.
+5. **Given** a clip's creator or an admin removes it, **When** clips are listed, **Then** it no longer appears.
 
 ---
 
@@ -87,6 +105,8 @@ A viewer who signs in (Clerk) gets a matching account record in the backend auto
 - Chat message bursts (spam or a hot moment) — writes must be rate-limited per user so one viewer can't flood the room.
 - A viewer closes the tab without a clean disconnect — presence must expire stale sessions so the count doesn't drift upward.
 - A custom emoji is removed by an admin after viewers reacted with it — existing reactions age out naturally; new reactions with it are rejected.
+- A VOD is made private after clips of it exist — the clips must vanish for regular viewers along with it (and reappear if it's made public again).
+- A clip's start/end fall outside the recording's actual duration — the system can't know the video's length (it only stores a URL); the player clamps at playback time.
 
 ## Requirements *(mandatory)*
 
@@ -110,6 +130,9 @@ A viewer who signs in (Clerk) gets a matching account record in the backend auto
 - **FR-016**: The system MUST track approximate live viewer presence per stream (anonymous and signed-in alike) and expire stale sessions, so the displayed count tracks reality within a short delay.
 - **FR-017**: Chat is writable only while its stream is live; after the stream ends, retained messages are read-only.
 - **FR-018**: Administrators MUST be able to upload custom emoji images (name + image) and deactivate them; deactivated custom emojis are rejected for new reactions while existing ones age out naturally.
+- **FR-019**: Each archived stream (VOD) MUST have a visibility of public or private (default public), changeable by administrators. Private VODs — and everything derived from them (archive listings, clips) — are hidden from non-admin viewers.
+- **FR-020**: Signed-in users MUST be able to create clips from a public VOD: a reference to the VOD plus start/end timestamps, duration ≤ 15 seconds, optional title. Clips involve no video processing and are available immediately; anyone (including anonymous viewers) can view clips of public VODs.
+- **FR-021**: A clip MUST be removable by its creator or an administrator; removed clips disappear from all listings.
 
 ### Key Entities
 
@@ -118,6 +141,7 @@ A viewer who signs in (Clerk) gets a matching account record in the backend auto
 - **ChatMessage**: Belongs to a Stream and a User. Holds text, sent time, and a removed flag (soft-delete so moderation is auditable). Writable only while the stream is live. Survives author account deletion with a fallback display identity.
 - **Reaction**: Belongs to a Stream and a User. Carries a kind — a unicode emoji or a reference to a CustomEmoji. Short-lived display; retention can be minimal.
 - **CustomEmoji**: Admin-uploaded image with a name and an active flag. Referenced by Reactions; deactivation stops new use without breaking history.
+- **Clip**: A pointer into a VOD — belongs to a Stream (the source VOD) and a User (creator); holds start/end offsets (≤15s apart) and an optional title. No video data of its own; visibility follows the source VOD.
 - **PresenceSession**: One per connected viewer per live stream (anonymous or signed-in). Heartbeat-refreshed; expires when stale. Viewer count is derived by counting fresh sessions — never stored as a mutable counter.
 
 ## Success Criteria *(mandatory)*
@@ -131,6 +155,7 @@ A viewer who signs in (Clerk) gets a matching account record in the backend auto
 - **SC-005**: Schedule and archive listings are consistent with stream records 100% of the time (no drift), because they are derived, not duplicated.
 - **SC-006**: A posted chat message is visible to all connected viewers within 2 seconds.
 - **SC-007**: The displayed viewer count is within 10% of actual connected viewers, and stale sessions stop counting within 60 seconds of disconnect.
+- **SC-008**: Creating a clip completes instantly (no processing wait), and a private VOD is invisible to non-admin viewers in 100% of listings, including its clips.
 
 ## Assumptions
 
@@ -146,3 +171,5 @@ A viewer who signs in (Clerk) gets a matching account record in the backend auto
 - Chat history is retained after a stream ends and may be shown read-only alongside the archived recording. Reactions need not be retained long-term.
 - Moderation scope for v1 is message removal only; bans/mutes/timeouts are out of scope.
 - Custom emoji images are small (≤256 KB) static images; image content moderation is the admin's own judgment (admins are the only uploaders).
+- VOD privacy is listing-level: the data layer withholds private VODs (and their clips) from non-admins, but the recording file itself lives on the media server and is fetchable by anyone who already has its exact URL. File-level protection (e.g., signed URLs on the media server) is an ops concern outside this spec.
+- Clip playback is client-side: the player seeks the source recording to the clip's start and stops at its end. No server-side video processing, ever, in this spec.

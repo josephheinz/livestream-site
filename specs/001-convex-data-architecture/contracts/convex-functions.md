@@ -1,6 +1,6 @@
 # Contracts: Convex Function Surface
 
-The public API this feature exposes to the Next.js frontend. File layout mirrors domains: `convex/users.ts`, `convex/streams.ts`, `convex/chat.ts`, `convex/reactions.ts`, `convex/emojis.ts`, `convex/presence.ts`, `convex/http.ts`, `convex/crons.ts`.
+The public API this feature exposes to the Next.js frontend. File layout mirrors domains: `convex/users.ts`, `convex/streams.ts`, `convex/chat.ts`, `convex/reactions.ts`, `convex/emojis.ts`, `convex/clips.ts`, `convex/presence.ts`, `convex/http.ts`, `convex/crons.ts`.
 
 Auth notes: **public** = callable anonymously; **auth** = requires Clerk identity; **admin** = requires identity whose user row has `role: "admin"` (server-checked, throws otherwise).
 
@@ -10,8 +10,11 @@ Auth notes: **public** = callable anonymously; **auth** = requires Clerk identit
 |---|---|---|---|
 | `streams.getLive` | — | `Stream \| null` (the at-most-one live stream) | public |
 | `streams.listUpcoming` | — | `Stream[]` scheduled, soonest first | public |
-| `streams.listArchive` | `{ limit? }` | `Stream[]` ended with recordingUrl, newest first | public |
-| `streams.get` | `{ streamId }` | `Stream \| null` | public |
+| `streams.listArchive` | `{ limit? }` | `Stream[]` ended with recordingUrl, newest first; private VODs included only for admins | public |
+| `streams.get` | `{ streamId }` | `Stream \| null`; a private VOD returns null for non-admins | public |
+| `clips.list` | `{ streamId }` | non-removed clips of that VOD, newest first; empty for non-admins if the VOD is private | public |
+| `clips.get` | `{ clipId }` | `Clip \| null` (with source recordingUrl) for share pages; null for non-admins if source is private | public |
+| `clips.mine` | — | caller's clips, newest first | auth |
 | `chat.list` | `{ streamId }` | last 100 non-removed messages with author name/avatar (deleted authors → "Deleted user" fallback), oldest→newest | public |
 | `reactions.recent` | `{ streamId }` | reactions from the trailing 30s | public |
 | `emojis.list` | — | active custom emojis with resolved image URLs | public |
@@ -28,7 +31,10 @@ Auth notes: **public** = callable anonymously; **auth** = requires Clerk identit
 | `streams.goLive` | `{ streamId }` | `scheduled → live`; **throws if another stream is live**; sets `actualStart` | admin |
 | `streams.end` | `{ streamId }` | `live → ended`; sets `actualEnd` | admin |
 | `streams.attachRecording` | `{ streamId, recordingUrl }` | Only on `ended`; makes it archived/playable (URL of the file node-media-server recorded) | admin |
+| `streams.setVisibility` | `{ streamId, visibility }` | Toggle public/private; private hides the VOD + its clips from non-admins | admin |
 | `streams.cancel` | `{ streamId }` | `scheduled → canceled` | admin |
+| `clips.create` | `{ streamId, start, end, title? }` | Validates: source is an archived public VOD, `end > start`, duration ≤15s, title ≤100 chars | auth |
+| `clips.remove` | `{ clipId }` | Soft-delete; allowed for the clip's creator or an admin | auth |
 | `chat.send` | `{ streamId, body }` | Validates: stream live, body 1–500 chars, ≥2s since sender's last message | auth |
 | `chat.remove` | `{ messageId }` | Sets `removed: true` | admin |
 | `reactions.send` | `{ streamId, kind }` | Validates: stream live; kind is a unicode emoji (≤16 chars) or `custom:<id>` of an active custom emoji | auth |

@@ -73,3 +73,15 @@ All spec-level ambiguities were resolved during `/speckit-specify` (manual admin
 - **Rationale**: The recording is a free byproduct of the ingest server the site already needs; a serverless database is the wrong (and expensive) place for video. Storage/disk management is an ops concern on that host, outside this data model.
 - **Alternatives considered**: Uploading recordings to Convex file storage — rejected, wrong tool for multi-GB media. Managed video providers — rejected earlier by product decision (self-hosted).
 - **Future option (not v1)**: node-media-server emits `postPublish`/`donePublish` events that could automate goLive/end via a Convex HTTP action; FR-010 keeps lifecycle manual for now.
+
+## D13: VOD visibility (FR-019)
+
+- **Decision**: A `visibility: "public" | "private"` field on `streams` (default public), toggled by an admin mutation. Every read path that exposes VOD data (`listArchive`, `streams.get`, `clips.*`) checks it against the caller's role — privacy is enforced at read time in one place per query, never denormalized onto clips.
+- **Rationale**: One field + read-time checks = no state to keep in sync when visibility flips; clips inherit automatically (SC-008).
+- **Caveat (recorded in spec assumptions)**: This is listing-level privacy. The recording file on the node-media-server host remains fetchable by anyone holding its exact URL; file-level protection (signed URLs) is future ops work.
+
+## D14: Clips as pure references (FR-020, FR-021)
+
+- **Decision**: `clips` table holding `(streamId, userId, start, end, title?, removed)` — a pointer, never a copy. Creation validates auth, an archived public source, and duration ≤15s inside the mutation. Playback is client-side seek of the source `recordingUrl` (e.g., media-fragment `#t=start,end` or player-level clamp). Soft-delete by creator or admin.
+- **Rationale**: Zero video processing, zero storage, instant availability (SC-008); the 15s bound is a mutation constant, trivially adjustable.
+- **Alternatives considered**: Server-side clip extraction (ffmpeg on the media host) — real video files, but a processing pipeline, queue, and disk cost for something a seek does for free. Revisit only if clips need to outlive their source VODs.

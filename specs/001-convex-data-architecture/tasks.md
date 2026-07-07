@@ -11,7 +11,7 @@
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)
-- **[Story]**: US1 = watch live, US2 = schedule, US3 = chat/reactions/presence, US4 = identity sync (satisfied by Foundational phase)
+- **[Story]**: US1 = watch live, US2 = schedule/archive, US3 = chat/reactions/presence, US4 = identity sync (satisfied by Foundational phase), US5 = clips + VOD privacy
 
 ## Phase 1: Setup (Shared Infrastructure)
 
@@ -29,7 +29,7 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Create convex/schema.ts defining all 6 tables and indexes exactly per specs/001-convex-data-architecture/data-model.md (users, streams, chatMessages, reactions, customEmojis, presenceSessions)
+- [ ] T004 Create convex/schema.ts defining all 7 tables and indexes exactly per specs/001-convex-data-architecture/data-model.md (users, streams, chatMessages, reactions, customEmojis, clips, presenceSessions)
 - [ ] T005 Create convex/lib/auth.ts with `getCurrentUser(ctx)`, `requireUser(ctx)`, and `requireAdmin(ctx)` helpers (join Clerk identity → users row via by_externalId; requireAdmin throws unless `role === "admin"`)
 - [ ] T006 Create convex/users.ts with `me` query and `ensure` upsert mutation per contracts/convex-functions.md
 - [ ] T007 [P] Create convex/http.ts with the svix-verified `POST /clerk-users-webhook` HTTP action (user.created/updated → upsert; user.deleted → delete the users row only — chat messages remain per research D11); add `svix` dependency
@@ -65,11 +65,11 @@
 
 ### Tests for User Story 2
 
-- [ ] T011 [P] [US2] Write convex/__tests__/streams.listings.test.ts (failing first): listUpcoming excludes live/ended/canceled and orders by scheduledStart; listArchive excludes ended-without-recording and orders newest-first; attachRecording only valid on ended and admin-only; cancel only valid from scheduled; update edits metadata without changing status
+- [ ] T011 [P] [US2] Write convex/__tests__/streams.listings.test.ts (failing first): listUpcoming excludes live/ended/canceled and orders by scheduledStart; listArchive excludes ended-without-recording and orders newest-first; listArchive/get hide private VODs from non-admins but not from admins; setVisibility and attachRecording admin-only, attachRecording only valid on ended; cancel only valid from scheduled; update edits metadata without changing status
 
 ### Implementation for User Story 2
 
-- [ ] T012 [US2] Extend convex/streams.ts with `listUpcoming` and `listArchive` queries plus `update`, `attachRecording`, `cancel` admin mutations per contracts/convex-functions.md
+- [ ] T012 [US2] Extend convex/streams.ts with `listUpcoming` and `listArchive` queries plus `update`, `attachRecording`, `setVisibility`, `cancel` admin mutations per contracts/convex-functions.md (visibility checks at read time per research D13)
 
 **Checkpoint**: Schedule and archive fully derivable; US1 unaffected
 
@@ -118,11 +118,31 @@
 
 ---
 
-## Phase 7: Polish & Cross-Cutting Concerns
+## Phase 7: User Story 5 - Clips + VOD privacy (Priority: P5)
 
-- [ ] T022 Run full gate: `pnpm test`, `pnpm exec tsc --noEmit`, `pnpm lint` — fix anything red
-- [ ] T023 Execute the manual two-browser validation in specs/001-convex-data-architecture/quickstart.md against `npx convex dev` + `pnpm dev`
-- [ ] T024 [P] Record the load-bearing decisions (derived views, transactional single-live invariant, heartbeat presence with documented ceiling) in docs/ADR.md
+**Goal**: Signed-in viewers create ≤15s pointer-clips into public VODs; admins toggle VOD privacy which hides VODs and their clips from regular viewers
+
+**Independent Test**: Create a clip on a public VOD → listed instantly with correct bounds; flip the VOD private → clip and VOD vanish for non-admins, persist for admins
+
+> **Depends on** US2's `setVisibility`/`listArchive` (T012) in addition to Phase 2.
+
+### Tests
+
+- [ ] T022 [P] [US5] Write convex/__tests__/clips.test.ts (failing first): create requires auth + archived public source; rejects duration >15s, inverted bounds, title >100 chars; list/get hide clips of private VODs from non-admins but not admins or after re-publicizing; remove allowed for creator and admin only; mine returns caller's clips
+
+### Implementation
+
+- [ ] T023 [US5] Create convex/clips.ts with `list`, `get`, `mine` queries and `create`, `remove` mutations per contracts/convex-functions.md (visibility derived from source stream at read time per research D13/D14)
+
+**Checkpoint**: All five stories independently green
+
+---
+
+## Phase 8: Polish & Cross-Cutting Concerns
+
+- [ ] T024 Run full gate: `pnpm test`, `pnpm exec tsc --noEmit`, `pnpm lint` — fix anything red
+- [ ] T025 Execute the manual two-browser validation in specs/001-convex-data-architecture/quickstart.md against `npx convex dev` + `pnpm dev`
+- [ ] T026 [P] Record the load-bearing decisions (derived views, transactional single-live invariant, heartbeat presence with documented ceiling, URL-only video references, read-time visibility) in docs/ADR.md
 
 ---
 
@@ -132,10 +152,11 @@
 
 - **Setup (Phase 1)**: none — start immediately; T001–T003 independent
 - **Foundational (Phase 2)**: needs T001/T002 for tests; T004 (schema) blocks T005–T008; blocks ALL user stories
-- **User Stories (Phases 3–6)**: each depends only on Phase 2 — they touch disjoint files and can run in parallel or in priority order
+- **User Stories (Phases 3–7)**: Phases 3–6 depend only on Phase 2 — they touch disjoint files and can run in parallel or in priority order
   - US2 (T012) extends the same convex/streams.ts as US1 (T010) — if run in parallel, coordinate on that one file; otherwise US1 → US2 sequentially
   - Phase 6 (T021 emojis.ts) is independent file-wise, but T015/T018's custom-kind validation reads the customEmojis table — run Phase 6 with or before the reactions tasks for green tests in one pass
-- **Polish (Phase 7)**: after all desired stories
+  - Phase 7 (US5 clips, T022–T023) additionally depends on US2's T012 (setVisibility/listArchive)
+- **Polish (Phase 8)**: after all desired stories
 
 ### Within Each Story
 

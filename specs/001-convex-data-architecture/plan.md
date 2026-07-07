@@ -6,7 +6,7 @@
 
 ## Summary
 
-Model the livestream domain in Convex around one central `streams` table whose lifecycle (`scheduled → live → ended [+recording] / canceled`) derives every user-facing view — schedule, live player, archive — so nothing can drift. Video lives entirely on the self-hosted node-media-server host (RTMP ingest, HLS out, recordings on its disk); Convex stores only URLs. Playback-position tracking is deferred. `users` mirrors Clerk (webhook + session upsert); `chatMessages`, `reactions` (any unicode emoji or admin-uploaded custom emoji via `customEmojis` + Convex file storage), and `presenceSessions` hang off users×streams. All frontend reads are reactive Convex queries (go-live/chat/counts push automatically); all writes are validated mutations with invariants (single live stream, live-only chat, rate limits, active-emoji checks) enforced transactionally inside the mutation.
+Model the livestream domain in Convex around one central `streams` table whose lifecycle (`scheduled → live → ended [+recording] / canceled`) derives every user-facing view — schedule, live player, archive — so nothing can drift. Video lives entirely on the self-hosted node-media-server host (RTMP ingest, HLS out, recordings on its disk); Convex stores only URLs. Playback-position tracking is deferred. VODs carry admin-toggled public/private visibility enforced at read time; `clips` are pure pointers (VOD + start/end ≤15s, no video processing) inheriting their source's visibility. `users` mirrors Clerk (webhook + session upsert); `chatMessages`, `reactions` (any unicode emoji or admin-uploaded custom emoji via `customEmojis` + Convex file storage), and `presenceSessions` hang off users×streams. All frontend reads are reactive Convex queries (go-live/chat/counts push automatically); all writes are validated mutations with invariants (single live stream, live-only chat, rate limits, active-emoji checks) enforced transactionally inside the mutation.
 
 ## Technical Context
 
@@ -14,7 +14,7 @@ Model the livestream domain in Convex around one central `streams` table whose l
 
 **Primary Dependencies**: Convex 1.31 (backend/db), Next.js 16.1 App Router + React 19 (frontend), `@clerk/nextjs` 6 (auth, already wired via `convex/auth.config.ts`)
 
-**Storage**: Convex database — 6 tables per [data-model.md](data-model.md); Convex file storage for custom emoji images
+**Storage**: Convex database — 7 tables per [data-model.md](data-model.md); Convex file storage for custom emoji images; video bytes live exclusively on the node-media-server host
 
 **Testing**: vitest + `convex-test` (to be added; per docs/TESTING-CONSIDERATIONS.md every PR ships tests), `tsc --noEmit` gate
 
@@ -39,7 +39,7 @@ Model the livestream domain in Convex around one central `streams` table whose l
 ```text
 specs/001-convex-data-architecture/
 ├── plan.md              # This file
-├── research.md          # Phase 0 — 11 design decisions (D1–D11; D7 removed post-analysis)
+├── research.md          # Phase 0 — 14 design decisions (D1–D14; D7 removed post-analysis)
 ├── data-model.md        # Phase 1 — 6 tables, indexes, transitions
 ├── quickstart.md        # Phase 1 — automated + manual validation guide
 ├── contracts/
@@ -57,6 +57,7 @@ convex/
 ├── chat.ts              # NEW — list, send, remove
 ├── reactions.ts         # NEW — recent, send
 ├── emojis.ts            # NEW — list, generateUploadUrl, create, deactivate
+├── clips.ts             # NEW — list, get, mine, create, remove
 ├── presence.ts          # NEW — count, heartbeat, leave
 ├── http.ts              # NEW — Clerk webhook
 ├── crons.ts             # NEW — presence/reaction purges
