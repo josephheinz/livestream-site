@@ -33,6 +33,27 @@ http.route({
   }),
 });
 
+// Origin-URL resolution for the same-origin HLS proxy (research D15).
+// Only the Next.js server may call this — guarded by a shared secret that
+// lives in both the Convex deployment env and the web server env.
+http.route({
+  path: "/stream-origin",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const secret = process.env.STREAM_PROXY_SECRET;
+    if (!secret || request.headers.get("x-proxy-secret") !== secret) {
+      return new Response("Forbidden", { status: 403 });
+    }
+    const streamId = new URL(request.url).searchParams.get("streamId");
+    if (streamId === null) {
+      const url = await ctx.runQuery(internal.streams.originForLive, {});
+      return Response.json({ live: url });
+    }
+    const vod = await ctx.runQuery(internal.streams.originForVod, { streamId });
+    return Response.json({ vod });
+  }),
+});
+
 type ClerkWebhookEvent = {
   type: string;
   data: {
