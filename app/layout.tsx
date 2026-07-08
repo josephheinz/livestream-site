@@ -28,8 +28,8 @@ const archivoBlack = Archivo_Black({
 });
 
 export const metadata: Metadata = {
-	title: 'NIGHTCHANNEL',
-	description: 'A continuous single-camera broadcast — softened neobrutalism livestream.'
+	title: 'Joseph Heinz',
+	description: 'Live from josephheinz.live — softened neobrutalism.'
 };
 
 export default function RootLayout({

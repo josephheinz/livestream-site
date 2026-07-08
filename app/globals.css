@@ -4,7 +4,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Nightchannel design system — softened neobrutalism.
+/* Design system — softened neobrutalism.
    Source: docs/livestream-site-design-brief/project/Design System.dc.html */
 :root {
   --background: #e9e4d8; /* paper */
@@ -28,7 +28,7 @@
   --ring: #c9524f;
   --radius: 0rem; /* square corners, ever */
 
-  /* Nightchannel extras */
+  /* Brand extras */
   --yellow: #e3b45c;
   --green: #5b9b72; /* ok / brand */
   --bar: #2e2b26; /* page chrome: banner, ticker, footer */

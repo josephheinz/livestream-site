@@ -5,6 +5,7 @@ import { StatusIndicator } from "@/components/ui/status-indicator";
 import { TitledCard } from "@/components/ui/titled-card";
 import { InputGroup } from "@/components/ui/input-group";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { stream } from "@/lib/mock-data";
 
 function Section({ heading, children }: { heading: string; children: ReactNode }) {
   return (
@@ -74,7 +75,7 @@ export default function DesignSystemPage() {
                 borderBottom: "22px solid var(--green)",
               }}
             />
-            <div className="font-display text-[30px] leading-none uppercase">Nightchannel</div>
+            <div className="font-display text-[30px] leading-none uppercase">{stream.channelName}</div>
           </div>
           <div className="mt-2.5 font-mono text-[12px] tracking-[.1em] text-bar-muted">
             DESIGN SYSTEM — SOFTENED NEOBRUTALISM · V2

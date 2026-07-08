@@ -32,7 +32,7 @@ export function formatThousands(n: number): string {
 export const MASKED_KEY = "•".repeat(10);
 
 export const stream: Stream = {
-  channelName: "NIGHTCHANNEL",
+  channelName: "Joseph Heinz",
   streamTitle: "CHANNEL 01 — MAIN FEED",
   live: false,
   viewers: 1204,
