@@ -146,4 +146,10 @@
     background: var(--primary);
     color: var(--primary-foreground);
   }
+  /* Visible keyboard focus on every interactive element (raw chrome buttons
+     and links don't carry the shadcn focus ring). */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
 }

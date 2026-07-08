@@ -27,10 +27,10 @@ Test runner: Vitest `jsdom` project + `@testing-library/react`. Test files sit n
 
 **Purpose**: Dependencies and test harness so React components are testable.
 
-- [ ] T001 Add `motion` (Framer Motion) to `dependencies` in `package.json` (`pnpm add motion`)
-- [ ] T002 [P] Add dev deps `jsdom @testing-library/react @testing-library/dom @testing-library/jest-dom @vitejs/plugin-react` (`pnpm add -D ...`)
-- [ ] T003 Convert `vitest.config.ts` to a projects config: keep the existing `edge-runtime` project for `convex/**`, add a `jsdom` project (with `@vitejs/plugin-react`) matching `components/**/*.test.tsx` and `app/**/*.test.tsx`
-- [ ] T004 [P] Create `vitest.setup.ts` importing `@testing-library/jest-dom` and a `matchMedia` mock helper; register it as the jsdom project `setupFiles`
+- [x] T001 Add `motion` (Framer Motion) to `dependencies` in `package.json` (`pnpm add motion`)
+- [x] T002 [P] Add dev deps `jsdom @testing-library/react @testing-library/dom @testing-library/jest-dom @vitejs/plugin-react` (`pnpm add -D ...`)
+- [x] T003 Convert `vitest.config.ts` to a projects config: keep the existing `edge-runtime` project for `convex/**`, add a `jsdom` project (with `@vitejs/plugin-react`) matching `components/**/*.test.tsx` and `app/**/*.test.tsx`
+- [x] T004 [P] Create `vitest.setup.ts` importing `@testing-library/jest-dom` and a `matchMedia` mock helper; register it as the jsdom project `setupFiles`
 
 **Checkpoint**: `pnpm test` runs both projects; a trivial jsdom test can render a component.
 
@@ -42,14 +42,14 @@ Test runner: Vitest `jsdom` project + `@testing-library/react`. Test files sit n
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T005 Extend `app/globals.css`: add `@keyframes tape` for the ticker and a `@media (prefers-reduced-motion: reduce)` block that neutralizes `blink`/`pulse-soft`/`tape`; confirm the existing token/shadow layer is unchanged
-- [ ] T006 [P] Create `lib/mock-data.ts`: stream metadata, seeded chat messages (with handle colors), sample external connections, sample banned users, ticker strings — typed per `data-model.md`
-- [ ] T007 [P] Test `components/theme/theme-provider.test.tsx`: cycle order `auto→light→dark→auto`; `dark` adds `.dark` to root, `light` removes it, `auto` follows mocked `matchMedia` — MUST FAIL first
-- [ ] T008 [P] Test `components/motion/motion-primitives.test.tsx`: `Blink`/`PulseSquare`/`Ticker` render their content statically when `useReducedMotion()` is mocked `true` — MUST FAIL first
-- [ ] T009 Create `components/theme/theme-provider.tsx` (mode state, `localStorage`, `matchMedia` listener, applies `.dark`; exposes `useTheme()`), making T007 pass
-- [ ] T010 [P] Create `components/theme/theme-script.tsx` (inline no-flash pre-hydration class setter) and `components/theme/theme-toggle.tsx` (renders `THEME:{MODE}`, calls `cycle()`)
-- [ ] T011 Create `components/motion/motion-primitives.tsx`: `Blink`, `PulseSquare`, `Ticker` via `motion/react`, each gated on `useReducedMotion()`, making T008 pass
-- [ ] T012 Wire `app/layout.tsx`: mount `ThemeScript` in `<head>`, wrap children in `ThemeProvider` and `<MotionConfig reducedMotion="user">`; fix stale `metadata` title/description to Nightchannel
+- [x] T005 Extend `app/globals.css`: add `@keyframes tape` for the ticker and a `@media (prefers-reduced-motion: reduce)` block that neutralizes `blink`/`pulse-soft`/`tape`; confirm the existing token/shadow layer is unchanged
+- [x] T006 [P] Create `lib/mock-data.ts`: stream metadata, seeded chat messages (with handle colors), sample external connections, sample banned users, ticker strings — typed per `data-model.md`
+- [x] T007 [P] Test `components/theme/theme-provider.test.tsx`: cycle order `auto→light→dark→auto`; `dark` adds `.dark` to root, `light` removes it, `auto` follows mocked `matchMedia` — MUST FAIL first
+- [x] T008 [P] Test `components/motion/motion-primitives.test.tsx`: `Blink`/`PulseSquare`/`Ticker` render their content statically when `useReducedMotion()` is mocked `true` — MUST FAIL first
+- [x] T009 Create `components/theme/theme-provider.tsx` (mode state, `localStorage`, `matchMedia` listener, applies `.dark`; exposes `useTheme()`), making T007 pass
+- [x] T010 [P] Create `components/theme/theme-script.tsx` (inline no-flash pre-hydration class setter) and `components/theme/theme-toggle.tsx` (renders `THEME:{MODE}`, calls `cycle()`)
+- [x] T011 Create `components/motion/motion-primitives.tsx`: `Blink`, `PulseSquare`, `Ticker` via `motion/react`, each gated on `useReducedMotion()`, making T008 pass
+- [x] T012 Wire `app/layout.tsx`: mount `ThemeScript` in `<head>`, wrap children in `ThemeProvider` and `<MotionConfig reducedMotion="user">`; fix stale `metadata` title/description to Nightchannel
 
 **Checkpoint**: Theme cycles app-wide, motion primitives respect reduced-motion, mock data available.
 
@@ -66,18 +66,18 @@ the whole page.
 
 ### Tests for User Story 1 (write FIRST, observe FAIL) ⚠️
 
-- [ ] T013 [P] [US1] Test `components/ui/button.test.tsx`: variants `cta`/`accent`/`solid`/`outline`/`mono` render with expected text/role, hover-lift + square-corner classes
-- [ ] T014 [P] [US1] Test `components/ui/status-indicator.test.tsx`: `kind="live"` marks the blink element, all kinds render a square (no rounding), reduced-motion → no animation
-- [ ] T015 [P] [US1] Test `components/ui/titled-card.test.tsx`, `stat-card.test.tsx`, `input-group.test.tsx`: title/label/value/button text render; StatCard bar reflects `barColor`
+- [x] T013 [P] [US1] Test `components/ui/button.test.tsx`: variants `cta`/`accent`/`solid`/`outline`/`mono` render with expected text/role, hover-lift + square-corner classes
+- [x] T014 [P] [US1] Test `components/ui/status-indicator.test.tsx`: `kind="live"` marks the blink element, all kinds render a square (no rounding), reduced-motion → no animation
+- [x] T015 [P] [US1] Test `components/ui/titled-card.test.tsx`, `stat-card.test.tsx`, `input-group.test.tsx`: title/label/value/button text render; StatCard bar reflects `barColor`
 
 ### Implementation for User Story 1
 
-- [ ] T016 [US1] Extend `components/ui/button.tsx` CVA with `cta`/`accent`/`solid`/`outline`/`mono` variants (tokens, 2px/1px borders, `--shadow-brutal-sm`, `hover:-translate-x-px -translate-y-px`, `font-display uppercase`), making T013 pass
-- [ ] T017 [P] [US1] Create `components/ui/status-indicator.tsx` (LIVE blink / ON AIR / OFF AIR / CONNECTED pulse, square, reduced-motion aware via motion primitives), making T014 pass
-- [ ] T018 [P] [US1] Create `components/ui/titled-card.tsx` (dark bar header, 2px border, 4px offset shadow)
-- [ ] T019 [P] [US1] Create `components/ui/stat-card.tsx` (mono label, Archivo Black value, colored underline bar)
-- [ ] T020 [P] [US1] Create `components/ui/input-group.tsx` (fused input + button, 1px seam, flat inputs) — T018–T020 make T015 pass
-- [ ] T021 [US1] Create `app/design-system/page.tsx`: reference gallery of principles, color swatches (light/accents/dark), typography, buttons, forms, cards, status indicators, layout rules (mirrors `Design System.dc.html`), using the primitives above + `ThemeToggle`
+- [x] T016 [US1] Extend `components/ui/button.tsx` CVA with `cta`/`accent`/`solid`/`outline`/`mono` variants (tokens, 2px/1px borders, `--shadow-brutal-sm`, `hover:-translate-x-px -translate-y-px`, `font-display uppercase`), making T013 pass
+- [x] T017 [P] [US1] Create `components/ui/status-indicator.tsx` (LIVE blink / ON AIR / OFF AIR / CONNECTED pulse, square, reduced-motion aware via motion primitives), making T014 pass
+- [x] T018 [P] [US1] Create `components/ui/titled-card.tsx` (dark bar header, 2px border, 4px offset shadow)
+- [x] T019 [P] [US1] Create `components/ui/stat-card.tsx` (mono label, Archivo Black value, colored underline bar)
+- [x] T020 [P] [US1] Create `components/ui/input-group.tsx` (fused input + button, 1px seam, flat inputs) — T018–T020 make T015 pass
+- [x] T021 [US1] Create `app/design-system/page.tsx`: reference gallery of principles, color swatches (light/accents/dark), typography, buttons, forms, cards, status indicators, layout rules (mirrors `Design System.dc.html`), using the primitives above + `ThemeToggle`
 
 **Checkpoint**: `/design-system` fully renders and theme-cycles — design system is demonstrable.
 
@@ -94,21 +94,21 @@ and closes.
 
 ### Tests for User Story 2 (write FIRST, observe FAIL) ⚠️
 
-- [ ] T022 [P] [US2] Test `components/site/banner.test.tsx`: active-route indication, Sign In opens the modal, live indicator reflects `live` prop
-- [ ] T023 [P] [US2] Test `components/site/auth-modal.test.tsx`: signin↔signup switch (signup shows username field), closes on backdrop and close control
-- [ ] T024 [P] [US2] Test `components/watch/player.test.tsx`: `live` → REC/quality/LIVE NOW! + control bar; off → OFF AIR panel
-- [ ] T025 [P] [US2] Test `components/watch/chat-panel.test.tsx`: `signedin` → messages + composer, `signedout` → sign-in prompt, `banned` → ban notice (reason/expiry), unknown → signed-out default
-- [ ] T026 [P] [US2] Test `app/page.test.tsx`: `?live=1` and `?chat=` select correct states, unknown values fall back to defaults, and rendering issues no network request (fetch spy = 0 calls)
+- [x] T022 [P] [US2] Test `components/site/banner.test.tsx`: active-route indication, Sign In opens the modal, live indicator reflects `live` prop
+- [x] T023 [P] [US2] Test `components/site/auth-modal.test.tsx`: signin↔signup switch (signup shows username field), closes on backdrop and close control
+- [x] T024 [P] [US2] Test `components/watch/player.test.tsx`: `live` → REC/quality/LIVE NOW! + control bar; off → OFF AIR panel
+- [x] T025 [P] [US2] Test `components/watch/chat-panel.test.tsx`: `signedin` → messages + composer, `signedout` → sign-in prompt, `banned` → ban notice (reason/expiry), unknown → signed-out default
+- [x] T026 [P] [US2] Test `app/page.test.tsx`: `?live=1` and `?chat=` select correct states, unknown values fall back to defaults, and rendering issues no network request (fetch spy = 0 calls)
 
 ### Implementation for User Story 2
 
-- [ ] T027 [P] [US2] Create `components/site/banner.tsx` (logo + channel name, Watch/Dashboard nav with active state, live indicator, Subscribe, Sign In → modal, `ThemeToggle`), making T022 pass
-- [ ] T028 [P] [US2] Create `components/site/ticker-tape.tsx` (uses `Ticker`) and `components/site/footer.tsx` (channel name + nav links)
-- [ ] T029 [P] [US2] Create `components/site/auth-modal.tsx` (controlled: `open`/`mode`/`onClose`/`onSwitchMode`, blurred backdrop, inert inputs), making T023 pass
-- [ ] T030 [P] [US2] Create `components/watch/player.tsx` (live vs off-air visuals + inert overlaid control bar), making T024 pass
-- [ ] T031 [P] [US2] Create `components/watch/stream-info.tsx` (titled header ON AIR/OFF AIR + metadata row)
-- [ ] T032 [P] [US2] Create `components/watch/chat-panel.tsx` (signedin/signedout/banned states, inert/local-echo composer), making T025 pass
-- [ ] T033 [US2] Create `app/page.tsx` (Watch route): read `searchParams` for `live`/`chat`, compose banner + player + stream-info + chat + ticker + footer + auth modal from mock data; replaces the leftover template Home — making T026 pass
+- [x] T027 [P] [US2] Create `components/site/banner.tsx` (logo + channel name, Watch/Dashboard nav with active state, live indicator, Subscribe, Sign In → modal, `ThemeToggle`), making T022 pass
+- [x] T028 [P] [US2] Create `components/site/ticker-tape.tsx` (uses `Ticker`) and `components/site/footer.tsx` (channel name + nav links)
+- [x] T029 [P] [US2] Create `components/site/auth-modal.tsx` (controlled: `open`/`mode`/`onClose`/`onSwitchMode`, blurred backdrop, inert inputs), making T023 pass
+- [x] T030 [P] [US2] Create `components/watch/player.tsx` (live vs off-air visuals + inert overlaid control bar), making T024 pass
+- [x] T031 [P] [US2] Create `components/watch/stream-info.tsx` (titled header ON AIR/OFF AIR + metadata row)
+- [x] T032 [P] [US2] Create `components/watch/chat-panel.tsx` (signedin/signedout/banned states, inert/local-echo composer), making T025 pass
+- [x] T033 [US2] Create `app/page.tsx` (Watch route): read `searchParams` for `live`/`chat`, compose banner + player + stream-info + chat + ticker + footer + auth modal from mock data; replaces the leftover template Home — making T026 pass
 
 **Checkpoint**: Watch screen and all shared chrome work; every documented Watch state reachable by URL.
 
@@ -124,18 +124,18 @@ External Connections card, Broadcast card, and Banned Users table.
 
 ### Tests for User Story 3 (write FIRST, observe FAIL) ⚠️
 
-- [ ] T034 [P] [US3] Test `components/dashboard/external-connections.test.tsx`: add appends a row, toggle flips ON/OFF, remove deletes, raw key never rendered (only dots), empty → dashed empty state
-- [ ] T035 [P] [US3] Test `components/dashboard/banned-users.test.tsx`: unban removes a row, empty → "No active bans"
-- [ ] T036 [P] [US3] Test `components/dashboard/stat-row.test.tsx` + `broadcast-card.test.tsx`: four stat cards + correct barColors; broadcast card reflects `live` and toggles
-- [ ] T037 [P] [US3] Test `app/dashboard/page.test.tsx`: `?live=1` drives status stat/broadcast; rendering issues no network request (fetch spy = 0 calls)
+- [x] T034 [P] [US3] Test `components/dashboard/external-connections.test.tsx`: add appends a row, toggle flips ON/OFF, remove deletes, raw key never rendered (only dots), empty → dashed empty state
+- [x] T035 [P] [US3] Test `components/dashboard/banned-users.test.tsx`: unban removes a row, empty → "No active bans"
+- [x] T036 [P] [US3] Test `components/dashboard/stat-row.test.tsx` + `broadcast-card.test.tsx`: four stat cards + correct barColors; broadcast card reflects `live` and toggles
+- [x] T037 [P] [US3] Test `app/dashboard/page.test.tsx`: `?live=1` drives status stat/broadcast; rendering issues no network request (fetch spy = 0 calls)
 
 ### Implementation for User Story 3
 
-- [ ] T038 [P] [US3] Create `components/dashboard/stat-row.tsx` (four `StatCard`s: status/watching/connections/bans), making T036 (stat part) pass
-- [ ] T039 [P] [US3] Create `components/dashboard/external-connections.tsx` (local list: add/toggle/remove, masked keys, empty state), making T034 pass
-- [ ] T040 [P] [US3] Create `components/dashboard/broadcast-card.tsx` (ON AIR/OFF AIR + go-live/off toggle), making T036 (broadcast part) pass
-- [ ] T041 [P] [US3] Create `components/dashboard/banned-users.tsx` (table + unban + empty state), making T035 pass
-- [ ] T042 [US3] Create `app/dashboard/page.tsx`: read `searchParams` for `live`, compose banner + header/go-live + stat row + connections + broadcast + banned table + ticker + footer from mock data — making T037 pass
+- [x] T038 [P] [US3] Create `components/dashboard/stat-row.tsx` (four `StatCard`s: status/watching/connections/bans), making T036 (stat part) pass
+- [x] T039 [P] [US3] Create `components/dashboard/external-connections.tsx` (local list: add/toggle/remove, masked keys, empty state), making T034 pass
+- [x] T040 [P] [US3] Create `components/dashboard/broadcast-card.tsx` (ON AIR/OFF AIR + go-live/off toggle), making T036 (broadcast part) pass
+- [x] T041 [P] [US3] Create `components/dashboard/banned-users.tsx` (table + unban + empty state), making T035 pass
+- [x] T042 [US3] Create `app/dashboard/page.tsx`: read `searchParams` for `live`, compose banner + header/go-live + stat row + connections + broadcast + banned table + ticker + footer from mock data — making T037 pass
 
 **Checkpoint**: All three routes independently functional from static data.
 
@@ -143,11 +143,11 @@ External Connections card, Broadcast card, and Banned Users table.
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T043 [P] Add a cross-route no-network assertion helper and confirm `/`, `/dashboard`, `/design-system` issue zero data requests (SC-005)
-- [ ] T044 [P] Responsive pass: verify Watch player/chat stack and Dashboard grids collapse at ~375px with no horizontal page-frame overflow (SC-004); fix breakpoints as needed
-- [ ] T045 [P] Accessibility pass: visible focus states on interactive elements; confirm blink/pulse/ticker are static under OS reduce-motion (FR-023)
-- [ ] T046 Run `specs/002-design-system-static-ui/quickstart.md` manual checklist against both prototypes in light + dark (SC-001, SC-002, SC-003, SC-006)
-- [ ] T047 [P] `pnpm lint` clean-up and remove any dead template code from the old Home page
+- [x] T043 [P] Add a cross-route no-network assertion helper and confirm `/`, `/dashboard`, `/design-system` issue zero data requests (SC-005)
+- [x] T044 [P] Responsive pass: verify Watch player/chat stack and Dashboard grids collapse at ~375px with no horizontal page-frame overflow (SC-004); fix breakpoints as needed
+- [x] T045 [P] Accessibility pass: visible focus states on interactive elements; confirm blink/pulse/ticker are static under OS reduce-motion (FR-023)
+- [x] T046 Run `specs/002-design-system-static-ui/quickstart.md` manual checklist against both prototypes in light + dark (SC-001, SC-002, SC-003, SC-006)
+- [x] T047 [P] `pnpm lint` clean-up and remove any dead template code from the old Home page
 
 ---
 
