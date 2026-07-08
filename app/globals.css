@@ -107,6 +107,7 @@
 
   --animate-blink: blink 1.2s step-end infinite;
   --animate-pulse-soft: pulse-soft 1.2s infinite;
+  --animate-tape: tape 26s linear infinite;
 }
 
 @keyframes blink {
@@ -116,6 +117,22 @@
 @keyframes pulse-soft {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.35; }
+}
+@keyframes tape {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* FR-023 — CSS fallback: neutralize decorative motion when the OS asks for it.
+   (Framer Motion handles this in JS too via MotionConfig reducedMotion="user".) */
+@media (prefers-reduced-motion: reduce) {
+  .animate-blink,
+  .animate-pulse-soft,
+  .animate-tape {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }
 
 @layer base {

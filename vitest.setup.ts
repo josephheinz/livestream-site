@@ -1,5 +1,9 @@
 import "@testing-library/jest-dom/vitest";
-import { vi } from "vitest";
+import { cleanup } from "@testing-library/react";
+import { afterEach, vi } from "vitest";
+
+// No `globals` in the UI project, so RTL's auto-cleanup isn't wired — do it here.
+afterEach(() => cleanup());
 
 /**
  * jsdom has no matchMedia; the theme controller and useReducedMotion() depend
