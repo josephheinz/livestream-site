@@ -81,7 +81,11 @@ async function relay(targetUrl: string, proxyPrefix: string): Promise<Response> 
     return new Response(null, { status: upstream.status === 404 ? 404 : 502 });
   }
   if (new URL(targetUrl).pathname.endsWith(".m3u8")) {
-    const rewritten = rewritePlaylist(await upstream.text(), proxyPrefix);
+    const rewritten = rewritePlaylist(
+      await upstream.text(),
+      proxyPrefix,
+      targetUrl,
+    );
     return new Response(rewritten, {
       headers: {
         "content-type": "application/vnd.apple.mpegurl",
