@@ -1,55 +1,43 @@
-'use client';
+import { Banner } from "@/components/site/banner";
+import { TickerTape } from "@/components/site/ticker-tape";
+import { Footer } from "@/components/site/footer";
+import { Player } from "@/components/watch/player";
+import { StreamHeading } from "@/components/watch/stream-heading";
+import { ChatPanel, type ChatMode } from "@/components/watch/chat-panel";
+import { chatMessages, banNotice, tickerItems, stream } from "@/lib/mock-data";
 
-import { Authenticated, Unauthenticated } from 'convex/react';
-import { SignInButton, SignUpButton, UserButton } from '@clerk/nextjs';
-import { useQuery } from 'convex/react';
-import { api } from '../convex/_generated/api';
-
-export default function Home() {
-	return (
-		<div className="min-h-screen flex flex-col">
-			<header className="flex items-center justify-between px-6 py-4 border-b">
-				<span className="font-semibold text-lg">Life EOS App</span>
-				<nav className="flex items-center gap-3">
-					<Unauthenticated>
-						<SignInButton mode="modal">
-							<button className="rounded-md px-4 py-2 text-sm font-medium border hover:bg-foreground/5 transition-colors">
-								Sign in
-							</button>
-						</SignInButton>
-						<SignUpButton mode="modal">
-							<button className="rounded-md px-4 py-2 text-sm font-medium bg-foreground text-background hover:opacity-90 transition-opacity">
-								Sign up
-							</button>
-						</SignUpButton>
-					</Unauthenticated>
-					<Authenticated>
-						<UserButton />
-					</Authenticated>
-				</nav>
-			</header>
-
-			<main className="flex-1 flex flex-col items-center justify-center gap-6 px-6 text-center">
-				<Unauthenticated>
-					<h1 className="text-3xl font-bold">Welcome to the Life EOS App</h1>
-					<p className="text-foreground/70 max-w-md">
-						Sign in or create an account to get started.
-					</p>
-				</Unauthenticated>
-				<Authenticated>
-					<Content />
-				</Authenticated>
-			</main>
-		</div>
-	);
+function parseChat(v: string | string[] | undefined): ChatMode {
+  const s = Array.isArray(v) ? v[0] : v;
+  return s === "signedin" || s === "banned" ? s : "signedout";
 }
 
-function Content() {
-	const messages = useQuery(api.messages.getForCurrentUser);
-	return (
-		<div className="flex flex-col items-center gap-2">
-			<h1 className="text-3xl font-bold">You&apos;re signed in 🎉</h1>
-			<p className="text-foreground/70">Authenticated content: {messages?.length ?? 0} messages</p>
-		</div>
-	);
+export default async function WatchPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = await searchParams;
+  const live = (Array.isArray(sp.live) ? sp.live[0] : sp.live) === "1";
+  const chat = parseChat(sp.chat);
+
+  return (
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <Banner live={live} />
+      <main className="grid min-h-0 flex-1 grid-cols-1 gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_380px] lg:grid-rows-1">
+        <div className="flex min-h-0 min-w-0 flex-col gap-4">
+          <Player live={live} />
+          <StreamHeading live={live} />
+        </div>
+        <ChatPanel
+          mode={chat}
+          messages={chatMessages}
+          ban={banNotice}
+          live={live}
+          viewers={stream.viewers}
+        />
+      </main>
+      <TickerTape items={tickerItems} />
+      <Footer />
+    </div>
+  );
 }

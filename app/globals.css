@@ -4,7 +4,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Nightchannel design system — softened neobrutalism.
+/* Design system — softened neobrutalism.
    Source: docs/livestream-site-design-brief/project/Design System.dc.html */
 :root {
   --background: #e9e4d8; /* paper */
@@ -28,7 +28,7 @@
   --ring: #c9524f;
   --radius: 0rem; /* square corners, ever */
 
-  /* Nightchannel extras */
+  /* Brand extras */
   --yellow: #e3b45c;
   --green: #5b9b72; /* ok / brand */
   --bar: #2e2b26; /* page chrome: banner, ticker, footer */
@@ -107,6 +107,7 @@
 
   --animate-blink: blink 1.2s step-end infinite;
   --animate-pulse-soft: pulse-soft 1.2s infinite;
+  --animate-tape: tape 26s linear infinite;
 }
 
 @keyframes blink {
@@ -116,6 +117,22 @@
 @keyframes pulse-soft {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.35; }
+}
+@keyframes tape {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* FR-023 — CSS fallback: neutralize decorative motion when the OS asks for it.
+   (Framer Motion handles this in JS too via MotionConfig reducedMotion="user".) */
+@media (prefers-reduced-motion: reduce) {
+  .animate-blink,
+  .animate-pulse-soft,
+  .animate-tape {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }
 
 @layer base {
@@ -128,5 +145,11 @@
   ::selection {
     background: var(--primary);
     color: var(--primary-foreground);
+  }
+  /* Visible keyboard focus on every interactive element (raw chrome buttons
+     and links don't carry the shadcn focus ring). */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
   }
 }

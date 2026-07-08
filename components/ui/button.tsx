@@ -11,7 +11,7 @@ const buttonVariants = cva(
       variant: {
         default: "bg-primary text-primary-foreground hover:bg-primary/80",
         outline:
-          "border-border bg-background shadow-xs hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
+          "rounded-none border-2 border-border bg-card text-foreground font-sans text-[13px] font-bold uppercase shadow-brutal-sm transition-transform hover:-translate-x-px hover:-translate-y-px",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
         ghost:
@@ -19,6 +19,13 @@ const buttonVariants = cva(
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
         link: "text-primary underline-offset-4 hover:underline",
+        // Neobrutalism variants — square, 2px border, 3px hard shadow, hover lift.
+        cta: "rounded-none border-2 border-border bg-primary text-primary-foreground font-display text-[13px] uppercase shadow-brutal-sm transition-transform hover:-translate-x-px hover:-translate-y-px",
+        accent:
+          "rounded-none border-2 border-border bg-secondary text-secondary-foreground font-sans text-[13px] font-bold tracking-[.04em] uppercase shadow-brutal-sm transition-transform hover:-translate-x-px hover:-translate-y-px",
+        solid:
+          "rounded-none border-2 border-border bg-foreground text-background font-sans text-[13px] font-bold uppercase shadow-brutal-sm transition-transform hover:-translate-x-px hover:-translate-y-px",
+        mono: "rounded-none border border-border bg-transparent text-foreground font-mono text-[11px] font-bold transition-transform hover:-translate-x-px hover:-translate-y-px",
       },
       size: {
         default:
