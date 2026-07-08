@@ -66,5 +66,6 @@ export default defineSchema({
     lastSeen: v.number(),
   })
     .index("by_stream_and_lastSeen", ["streamId", "lastSeen"])
+    .index("by_lastSeen", ["lastSeen"])
     .index("by_session", ["streamId", "sessionId"]),
 });

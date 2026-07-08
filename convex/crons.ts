@@ -10,13 +10,12 @@ export const purgeStalePresence = internalMutation({
   args: {},
   handler: async (ctx) => {
     const cutoff = Date.now() - PRESENCE_STALE_MS;
-    // ponytail: full scan — presence rows are bounded by concurrent viewers
-    // and this purge itself keeps the table small (research D4)
-    const sessions = await ctx.db.query("presenceSessions").collect();
-    for (const session of sessions) {
-      if (session.lastSeen < cutoff) {
-        await ctx.db.delete(session._id);
-      }
+    const stale = await ctx.db
+      .query("presenceSessions")
+      .withIndex("by_lastSeen", (q) => q.lt("lastSeen", cutoff))
+      .collect();
+    for (const session of stale) {
+      await ctx.db.delete(session._id);
     }
     return null;
   },
