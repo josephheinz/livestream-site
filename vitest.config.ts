@@ -1,5 +1,9 @@
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
+
+const root = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   test: {
@@ -16,6 +20,7 @@ export default defineConfig({
       {
         // React components/routes run under jsdom with Testing Library.
         plugins: [react()],
+        resolve: { alias: { "@": root } },
         test: {
           name: "ui",
           environment: "jsdom",
