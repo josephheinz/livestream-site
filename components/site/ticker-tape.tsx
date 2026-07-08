@@ -15,7 +15,7 @@ export function TickerTape({ items }: { items: TickerItem[] }) {
       </span>
     ));
   return (
-    <div className="flex-none border-t border-border bg-bar py-1.5 font-mono text-[12px] text-bar-ink">
+    <div className="sticky bottom-0 z-40 flex-none border-t border-border bg-bar py-1.5 font-mono text-[12px] text-bar-ink">
       <Ticker>
         <span className="inline-block">
           {row("a")}
