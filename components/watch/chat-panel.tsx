@@ -26,7 +26,7 @@ export function ChatPanel({
   const signedIn = mode === "signedin";
 
   return (
-    <div className="flex min-h-0 flex-col border-2 border-border bg-card shadow-brutal lg:max-h-[calc(100vh-160px)]">
+    <div className="flex min-h-[320px] flex-col border-2 border-border bg-card shadow-brutal lg:min-h-0">
       <div className="flex flex-none items-center justify-between bg-bar px-3.5 py-[9px] text-bar-ink">
         <span className="font-display text-[13px] uppercase">Live Chat</span>
         {live && (

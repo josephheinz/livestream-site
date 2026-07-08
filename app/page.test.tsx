@@ -57,6 +57,13 @@ describe("Watch route (/)", () => {
     expect(screen.getByText("Sign in to chat")).toBeInTheDocument();
   });
 
+  it("renders the stream title below the player", async () => {
+    await renderWatch({ live: "1" });
+    const controls = screen.getByTestId("player-controls");
+    const heading = screen.getByRole("heading");
+    expect(controls.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("issues no network request (SC-005)", async () => {
     await renderWatch({});
     expect(fetchSpy).not.toHaveBeenCalled();

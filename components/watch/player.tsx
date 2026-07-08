@@ -8,7 +8,7 @@ const ctrlBtn =
 // overlaid control bar.
 export function Player({ live }: { live: boolean }) {
   return (
-    <div className="relative min-h-[180px] flex-1 overflow-hidden border-2 border-border bg-[#16140f] shadow-brutal">
+    <div className="relative min-h-[240px] flex-1 overflow-hidden border-2 border-border bg-[#16140f] shadow-brutal">
       {live ? (
         <>
           <div
