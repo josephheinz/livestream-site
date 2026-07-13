@@ -33,7 +33,7 @@ export default function WatchPage() {
           <Player live={isLive} />
           <StreamHeading title={title} live={isLive} />
         </div>
-        <ChatPanel streamId={streamId} live={isLive} viewers={viewers} />
+        <ChatPanel streamId={boundStream?._id} live={isLive} viewers={viewers} />
       </main>
       <ConnectionStatus />
       <TickerTape items={tickerItemsFor(live, upcoming, settings?.tickerItems)} />

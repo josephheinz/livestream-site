@@ -62,9 +62,10 @@ export const send = mutation({
     if (trimmed.length > MAX_BODY_CHARS) {
       throw new Error(`Message exceeds ${MAX_BODY_CHARS} characters`);
     }
+    // Chat is always open — messages just need a real stream to attach to.
     const stream = await ctx.db.get(streamId);
-    if (stream === null || stream.status !== "live") {
-      throw new Error("Chat is only open while the stream is live");
+    if (stream === null) {
+      throw new Error("Stream not found");
     }
     // Rate limit (FR-014, research D5): one indexed read inside the transaction.
     const last = await ctx.db

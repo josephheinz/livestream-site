@@ -44,20 +44,26 @@ export function tickerItemsFor(
 }
 
 export function TickerTape({ items }: { items: TickerItem[] }) {
-  const row = (dup: string) =>
-    items.map((it, i) => (
-      <span
-        key={dup + i}
-        className="px-[22px]"
-        style={it.tone ? { color: `var(--${it.tone})` } : undefined}
-      >
-        {it.text}
-      </span>
-    ));
+  // Each copy spans at least the viewport with the items distributed evenly,
+  // so short lists fill the whole tape and the loop's second copy never shows
+  // alongside the first.
+  const row = (dup: string) => (
+    <span key={dup} className="inline-flex min-w-[100vw] justify-around align-top">
+      {items.map((it, i) => (
+        <span
+          key={dup + i}
+          className="px-[22px]"
+          style={it.tone ? { color: `var(--${it.tone})` } : undefined}
+        >
+          {it.text}
+        </span>
+      ))}
+    </span>
+  );
   return (
-    <div className="sticky bottom-0 z-40 flex-none border-t border-border bg-bar py-1.5 font-mono text-[12px] text-bar-ink">
+    <div className="sticky bottom-0 z-40 w-full flex-none border-t border-border bg-bar py-1.5 font-mono text-[12px] text-bar-ink">
       <Ticker>
-        <span className="inline-block">
+        <span className="inline-flex">
           {row("a")}
           {row("b")}
         </span>

@@ -143,12 +143,7 @@ export function ChatPanel({
         </div>
       )}
 
-      {signedIn && !live && (
-        <div className="flex-none border-t border-border bg-card p-3 text-center font-mono text-[12px] tracking-[.08em] text-muted-foreground uppercase">
-          Chat opens when the stream is live
-        </div>
-      )}
-      {signedIn && live && (
+      {signedIn && (
         <div className="flex-none">
           {pickerOpen && (
             <div className="flex flex-wrap gap-1.5 border-t border-border bg-card p-2">

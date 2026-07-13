@@ -129,12 +129,19 @@ describe("ChatPanel (wired)", () => {
     expect(screen.queryByPlaceholderText("Say something...")).toBeNull();
   });
 
-  it("off-air: signed-in viewers see the chat-opens-when-live note, no composer", () => {
+  it("off-air: chat stays open — signed-in viewers can still send", async () => {
     authState.isSignedIn = true;
+    sendMock.mockResolvedValue(undefined);
     mockData({});
     renderPanel(false);
-    expect(screen.getByText(/Chat opens when the stream is live/i)).toBeInTheDocument();
-    expect(screen.queryByPlaceholderText("Say something...")).toBeNull();
+
+    const input = screen.getByPlaceholderText("Say something...");
+    fireEvent.change(input, { target: { value: "hi from off-air" } });
+    fireEvent.click(screen.getByText("Send"));
+
+    await waitFor(() =>
+      expect(sendMock).toHaveBeenCalledWith({ streamId: "s1", body: "hi from off-air" }),
+    );
   });
 
   it("surfaces other send errors inline instead of eating the message", async () => {

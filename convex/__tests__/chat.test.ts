@@ -15,18 +15,18 @@ async function seedLiveStream(
   return streamId;
 }
 
-test("send requires auth and a live stream", async () => {
+test("send requires auth but works regardless of stream status", async () => {
   const t = setup();
   const admin = await asAdmin(t);
   const viewer = await asUser(t);
 
+  // Chat is always open: a scheduled (off-air) stream accepts messages too.
   const scheduledId = await admin.mutation(api.streams.create, {
     title: "Not yet",
     scheduledStart: Date.now() + 1_000_000,
   });
-  await expect(
-    viewer.mutation(api.chat.send, { streamId: scheduledId, body: "early!" }),
-  ).rejects.toThrow();
+  await viewer.mutation(api.chat.send, { streamId: scheduledId, body: "early!" });
+  expect(await t.query(api.chat.list, { streamId: scheduledId })).toHaveLength(1);
 
   const liveId = await seedLiveStream(admin);
   await expect(
