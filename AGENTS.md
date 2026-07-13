@@ -2,6 +2,8 @@
 
 **Never commit directly to `main`.** All work happens on a feature branch (`feature/`, `fix/`, `chore/`) and lands via PR. If you're on `main` and about to make changes, create a branch first. No exceptions.
 
+**Do not require a design spec or approval gate for ordinary implementation edits.** When the user asks to implement or change code, inspect the relevant context and proceed directly unless a genuinely material product decision is missing.
+
 <!-- convex-ai-start -->
 
 This project uses [Convex](https://convex.dev) as its backend.
