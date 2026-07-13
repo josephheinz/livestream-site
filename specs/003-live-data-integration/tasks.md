@@ -104,11 +104,11 @@ rule). Spec-002 visuals are frozen — wiring only (SC-007).
 
 ### Tests for User Story 3 (MANDATORY — write FIRST, observe FAIL) ⚠️
 
-- [ ] T023 [P] [US3] Update app/dashboard/page.test.tsx — admin (mocked `users.me` role) sees the dashboard; non-admin and signed-out get the denied state with no admin data (FR-002)
-- [ ] T024 [P] [US3] Update components/dashboard/dashboard-cards.test.tsx (+ dashboard-body coverage) — stats map per D7 (status ← getLive, watching ← presence.count, connections "0/0" honest empty, bans ← bans.list length); GO LIVE calls `streams.goLive` on the upcoming stream (creating via `streams.create` when none), GO OFF AIR calls `streams.end` (D8)
-- [ ] T025 [P] [US3] Update components/dashboard/banned-users.test.tsx — table rows from mocked `bans.list`, unban action calls `bans.unban`, add-ban form calls `bans.ban` with reason (required) and optional expiry
-- [ ] T026 [P] [US3] Update components/stream-title.test.tsx + add stream-title-card coverage — edit affordance only for admin, confirm persists via `streams.update`, concurrent-edit convergence (last write wins renders persisted value)
-- [ ] T027 [US3] Run the suite; confirm T023–T026 FAIL before implementing
+- [X] T023 [P] [US3] Update app/dashboard/page.test.tsx — admin (mocked `users.me` role) sees the dashboard; non-admin and signed-out get the denied state with no admin data (FR-002)
+- [X] T024 [P] [US3] Update components/dashboard/dashboard-cards.test.tsx (+ dashboard-body coverage) — stats map per D7 (status ← getLive, watching ← presence.count, connections "0/0" honest empty, bans ← bans.list length); GO LIVE calls `streams.goLive` on the upcoming stream (creating via `streams.create` when none), GO OFF AIR calls `streams.end` (D8)
+- [X] T025 [P] [US3] Update components/dashboard/banned-users.test.tsx — table rows from mocked `bans.list`, unban action calls `bans.unban`, add-ban form calls `bans.ban` with reason (required) and optional expiry
+- [X] T026 [P] [US3] Update components/stream-title.test.tsx + add stream-title-card coverage — edit affordance only for admin, confirm persists via `streams.update`, concurrent-edit convergence (last write wins renders persisted value)
+- [X] T027 [US3] Run the suite; confirm T023–T026 FAIL before implementing
 
 ### Implementation for User Story 3
 
