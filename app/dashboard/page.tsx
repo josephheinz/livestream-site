@@ -15,7 +15,6 @@ export default function DashboardPage() {
   const router = useRouter();
   const me = useQuery(api.users.me);
   const live = useQuery(api.streams.getLive);
-  const upcoming = useQuery(api.streams.listUpcoming);
   const settings = useQuery(api.settings.get);
   const isAdmin = me?.role === "admin";
 
@@ -37,7 +36,7 @@ export default function DashboardPage() {
         <DashboardBody />
       </main>
       <ConnectionStatus />
-      <TickerTape items={tickerItemsFor(live, upcoming, settings?.tickerItems)} />
+      <TickerTape items={tickerItemsFor(live, settings?.tickerItems)} />
     </div>
   );
 }

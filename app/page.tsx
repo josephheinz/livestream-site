@@ -15,14 +15,15 @@ const CHANNEL_NAME = "Joseph Heinz";
 
 export default function WatchPage() {
   const live = useQuery(api.streams.getLive);
-  const upcoming = useQuery(api.streams.listUpcoming);
   const settings = useQuery(api.settings.get);
-  const streamId = live?._id;
-  const viewers = useQuery(api.presence.count, streamId ? { streamId } : "skip") ?? 0;
-  usePresence(streamId);
+  // Chat and presence always bind to the current stream (live, next, or most
+  // recent) so they work off-air too; the backend resolves it server-side.
+  const boundStream = useQuery(api.streams.current) ?? null;
+  const streamId = boundStream?._id;
+  const viewers = useQuery(api.presence.count, {}) ?? 0;
+  usePresence();
 
   const isLive = live != null;
-  const boundStream = live ?? upcoming?.[0] ?? null;
   const title = boundStream?.title ?? CHANNEL_NAME;
 
   return (
@@ -33,10 +34,10 @@ export default function WatchPage() {
           <Player live={isLive} />
           <StreamHeading title={title} live={isLive} />
         </div>
-        <ChatPanel streamId={boundStream?._id} live={isLive} viewers={viewers} />
+        <ChatPanel streamId={streamId} viewers={viewers} />
       </main>
       <ConnectionStatus />
-      <TickerTape items={tickerItemsFor(live, upcoming, settings?.tickerItems)} />
+      <TickerTape items={tickerItemsFor(live, settings?.tickerItems)} />
     </div>
   );
 }

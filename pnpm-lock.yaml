@@ -29,6 +29,9 @@ importers:
       lucide-react:
         specifier: ^1.23.0
         version: 1.23.0(react@19.2.3)
+      minimessage-js:
+        specifier: ^2.0.1
+        version: 2.0.1
       motion:
         specifier: ^12.42.2
         version: 12.42.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -4166,6 +4169,9 @@ packages:
   minimatch@9.0.5:
     resolution: {integrity: sha512-G6T0ZX48xgozx7587koeX9Ys2NYy6Gmv//P89sEte9V9whIapMNF4idKxnW2QtCcLiTWlb/wfCabAtAFWhhBow==}
     engines: {node: '>=16 || 14 >=14.17'}
+
+  minimessage-js@2.0.1:
+    resolution: {integrity: sha512-9rkMlqu2iXJYWyRhselioOsXWhDyqb3qBvG/vCQtRHMvClJ1RGGkS2tU1gfvo0zSiKiU2k3EnH+Q2UR/CWU1RA==}
 
   minimist@1.2.8:
     resolution: {integrity: sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==}
@@ -9691,6 +9697,8 @@ snapshots:
   minimatch@9.0.5:
     dependencies:
       brace-expansion: 2.0.2
+
+  minimessage-js@2.0.1: {}
 
   minimist@1.2.8: {}
 

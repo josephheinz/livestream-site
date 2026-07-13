@@ -3,6 +3,7 @@ import { internalQuery, mutation, query } from "./_generated/server";
 import type { QueryCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { getCurrentUser, requireAdmin } from "./lib/auth";
+import { resolveCurrent } from "./lib/currentStream";
 
 export const LIVE_PROXY_PATH = "/stream/live.m3u8";
 
@@ -79,6 +80,22 @@ export const get = query({
       return null;
     }
     return sanitize(stream, isAdmin);
+  },
+});
+
+/**
+ * The single stream the site binds to right now: live if any, else the next
+ * scheduled, else the most recent ended one (recording or not) so chat and
+ * presence always have a home on this single-channel site.
+ */
+export const current = query({
+  args: {},
+  handler: async (ctx) => {
+    const stream = await resolveCurrent(ctx);
+    if (stream === null) {
+      return null;
+    }
+    return sanitize(stream, await callerIsAdmin(ctx));
   },
 });
 

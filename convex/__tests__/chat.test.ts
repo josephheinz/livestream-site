@@ -68,6 +68,42 @@ test("remove is admin-only and hides the message from list", async () => {
   expect(await t.query(api.chat.list, { streamId })).toHaveLength(0);
 });
 
+test("admins see removed messages (flagged); non-admins do not", async () => {
+  const t = setup();
+  const admin = await asAdmin(t);
+  const viewer = await asUser(t);
+  const streamId = await seedLiveStream(admin);
+
+  await viewer.mutation(api.chat.send, { streamId, body: "rude thing" });
+  const [message] = await t.query(api.chat.list, { streamId });
+  await admin.mutation(api.chat.remove, { messageId: message._id });
+
+  // Non-admin (anonymous) list hides it; admin list includes it flagged.
+  expect(await t.query(api.chat.list, { streamId })).toHaveLength(0);
+  const adminView = await admin.query(api.chat.list, { streamId });
+  expect(adminView).toHaveLength(1);
+  expect(adminView[0]).toMatchObject({ body: "rude thing", removed: true });
+});
+
+test("userProfile: admins see removed messages (flagged); non-admins do not", async () => {
+  const t = setup();
+  const admin = await asAdmin(t);
+  const viewer = await asUser(t);
+  const streamId = await seedLiveStream(admin);
+  const id = await viewerId(t);
+
+  await viewer.mutation(api.chat.send, { streamId, body: "rude thing" });
+  const [message] = await t.query(api.chat.list, { streamId });
+  await admin.mutation(api.chat.remove, { messageId: message._id });
+
+  const anon = await t.query(api.chat.userProfile, { userId: id });
+  expect(anon!.messages).toHaveLength(0);
+
+  const adminView = await admin.query(api.chat.userProfile, { userId: id });
+  expect(adminView!.messages).toHaveLength(1);
+  expect(adminView!.messages[0]).toMatchObject({ body: "rude thing", removed: true });
+});
+
 test("body validation: empty and >500 chars rejected", async () => {
   const t = setup();
   const admin = await asAdmin(t);
@@ -146,4 +182,23 @@ test("deleted author lists with the 'Deleted user' fallback (research D11)", asy
   const [message] = await t.query(api.chat.list, { streamId });
   expect(message.body).toBe("still here");
   expect(message.authorName).toBe("Deleted user");
+});
+
+test("send without a streamId bootstraps the channel's stream row (chat always works)", async () => {
+  const t = setup();
+  await asAdmin(t);
+  const viewer = await asUser(t);
+
+  // Zero streams exist — the first message creates the single-channel row.
+  await viewer.mutation(api.chat.send, { body: "first ever" });
+
+  const current = await t.query(api.streams.current);
+  expect(current).not.toBeNull();
+  const messages = await t.query(api.chat.list, { streamId: current!._id });
+  expect(messages).toHaveLength(1);
+  expect(messages[0]).toMatchObject({ body: "first ever" });
+
+  // Only one bootstrap row exists.
+  const streams = await t.run(async (ctx) => ctx.db.query("streams").collect());
+  expect(streams).toHaveLength(1);
 });

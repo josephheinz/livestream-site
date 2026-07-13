@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Popover } from "radix-ui";
 import { useQuery, useMutation } from "convex/react";
 import { useAuth } from "@clerk/nextjs";
 import { api } from "@/convex/_generated/api";
@@ -8,7 +9,13 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { InputGroup } from "@/components/ui/input-group";
 import { useAuthModal } from "@/components/site/auth-modal";
 
-type ChatMessage = { _id: string; body: string; authorName: string };
+type ChatMessage = {
+  _id: Id<"chatMessages">;
+  body: string;
+  authorName: string;
+  userId: Id<"users">;
+  removed: boolean;
+};
 
 // Names carry no backend color; derive a stable one so usernames stay varied
 // (mirrors the 002 palette).
@@ -51,15 +58,195 @@ function formatThousands(n: number): string {
   return n.toLocaleString("en-US");
 }
 
+// "jun 14" — the day-separator label.
+function dayLabel(ts: number): string {
+  return new Date(ts)
+    .toLocaleDateString("en-US", { month: "short", day: "numeric" })
+    .toLowerCase();
+}
+// "13:01" — 24-hour message timestamp.
+function timeLabel(ts: number): string {
+  return new Date(ts).toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
+// Popover shown when a username in chat is clicked: name, account-creation
+// date, and the user's full message history grouped by day. The profile query
+// only runs while open (skip otherwise) so idle names cost nothing.
+function UserNamePopover({
+  userId,
+  name,
+  color,
+  isAdmin,
+}: {
+  userId: Id<"users">;
+  name: string;
+  color: string;
+  isAdmin: boolean;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const profile = useQuery(api.chat.userProfile, open ? { userId } : "skip");
+  const ban = useMutation(api.bans.ban);
+  const [banReason, setBanReason] = React.useState("");
+  const [banning, setBanning] = React.useState(false);
+  const [banned, setBanned] = React.useState(false);
+  const [banError, setBanError] = React.useState<string | null>(null);
+
+  const confirmBan = async () => {
+    try {
+      await ban({ userId, reason: banReason.trim() });
+      setBanned(true);
+      setBanning(false);
+    } catch (error) {
+      setBanError(error instanceof Error ? error.message : "Could not ban");
+    }
+  };
+
+  return (
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Trigger asChild>
+        <button
+          type="button"
+          className="cursor-pointer font-sans text-[13px] font-bold hover:underline"
+          style={{ color }}
+        >
+          {name}
+        </button>
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content
+          align="start"
+          sideOffset={4}
+          collisionPadding={8}
+          className="z-50 w-72 border-2 border-border bg-card text-foreground shadow-brutal"
+        >
+          <div className="border-b-2 border-border bg-bar px-3 py-2 text-bar-ink">
+            <div className="font-display text-[13px] uppercase" style={{ color }}>
+              {name}
+            </div>
+            <div className="font-mono text-[11px] text-bar-muted">
+              {profile
+                ? `joined ${dayLabel(profile.createdAt)} ${new Date(profile.createdAt).getFullYear()}`
+                : "loading…"}
+            </div>
+          </div>
+          <div className="max-h-64 overflow-y-auto bg-background px-3 py-2">
+            {profile === undefined && (
+              <div className="text-[12px] text-muted-foreground">Loading…</div>
+            )}
+            {profile === null && (
+              <div className="text-[12px] text-muted-foreground">User not found.</div>
+            )}
+            {profile && profile.messages.length === 0 && (
+              <div className="text-[12px] text-muted-foreground">No messages yet.</div>
+            )}
+            {profile &&
+              profile.messages.map((m, i) => {
+                const prev = profile.messages[i - 1];
+                const showDay =
+                  prev === undefined || dayLabel(prev.createdAt) !== dayLabel(m.createdAt);
+                return (
+                  <React.Fragment key={m._id}>
+                    {showDay && (
+                      <div
+                        role="separator"
+                        aria-label={dayLabel(m.createdAt)}
+                        className="my-1.5 flex items-center gap-2 font-mono text-[11px] text-muted-foreground uppercase"
+                      >
+                        <span aria-hidden="true" className="h-px flex-1 bg-border" />
+                        <span>{dayLabel(m.createdAt)}</span>
+                        <span aria-hidden="true" className="h-px flex-1 bg-border" />
+                      </div>
+                    )}
+                    <div
+                      className={`mb-1 text-[12px] leading-tight break-words ${m.removed ? "opacity-50" : ""}`}
+                    >
+                      <span className="font-mono text-muted-foreground">
+                        {timeLabel(m.createdAt)}
+                      </span>{" "}
+                      <span className="font-bold" style={{ color }}>
+                        {name}
+                      </span>
+                      <span className="text-muted-foreground">:</span>{" "}
+                      {m.removed ? (
+                        <>
+                          <span className="text-muted-foreground line-through">{m.body}</span>
+                          <span className="ml-1 font-mono text-[10px] text-primary uppercase">
+                            [removed]
+                          </span>
+                        </>
+                      ) : (
+                        m.body
+                      )}
+                    </div>
+                  </React.Fragment>
+                );
+              })}
+          </div>
+          {isAdmin && (
+            <div className="border-t-2 border-border bg-card p-2">
+              {banned ? (
+                <div className="font-mono text-[11px] text-primary uppercase">
+                  ✓ user banned
+                </div>
+              ) : banning ? (
+                <div className="flex flex-col gap-1.5">
+                  <input
+                    autoFocus
+                    value={banReason}
+                    onChange={(e) => setBanReason(e.target.value)}
+                    placeholder="Ban reason (required)"
+                    className="border-2 border-border bg-background px-2 py-1 text-[12px] outline-none focus:border-primary"
+                  />
+                  {banError !== null && (
+                    <div className="text-[11px] text-primary">{banError}</div>
+                  )}
+                  <div className="flex gap-1.5">
+                    <button
+                      type="button"
+                      disabled={banReason.trim().length === 0}
+                      onClick={confirmBan}
+                      className="cursor-pointer border-2 border-primary bg-primary px-2 py-1 text-[11px] font-bold text-primary-foreground uppercase disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      Confirm ban
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBanning(false)}
+                      className="cursor-pointer border-2 border-border px-2 py-1 text-[11px] font-bold uppercase"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setBanning(true)}
+                  className="w-full cursor-pointer border-2 border-primary bg-card px-2 py-1 text-[11px] font-bold text-primary uppercase hover:bg-primary hover:text-primary-foreground"
+                >
+                  Ban user
+                </button>
+              )}
+            </div>
+          )}
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
+  );
+}
+
 // Chat column: real history + live tail, Clerk-driven modes, custom-emoji
 // picker, and ban feedback surfaced from the send error (research D5/D6).
+// Chat is always open; it binds to streams.current on the page.
 export function ChatPanel({
   streamId,
-  live,
   viewers,
 }: {
   streamId?: Id<"streams">;
-  live: boolean;
   viewers: number;
 }) {
   const { open } = useAuthModal();
@@ -67,7 +254,10 @@ export function ChatPanel({
   const messages = (useQuery(api.chat.list, streamId ? { streamId } : "skip") ??
     []) as ChatMessage[];
   const emojis = useQuery(api.emojis.list) ?? [];
+  const me = useQuery(api.users.me);
+  const isAdmin = me?.role === "admin";
   const send = useMutation(api.chat.send);
+  const removeMessage = useMutation(api.chat.remove);
 
   const [draft, setDraft] = React.useState("");
   const [pickerOpen, setPickerOpen] = React.useState(false);
@@ -87,11 +277,13 @@ export function ChatPanel({
 
   const handleSend = async (value: string) => {
     const body = value.trim();
-    if (body.length === 0 || streamId === undefined) {
+    if (body.length === 0) {
       return;
     }
     try {
-      await send({ streamId, body });
+      // No streamId → the backend attaches to (or bootstraps) the current
+      // stream, so sending always works.
+      await send(streamId !== undefined ? { streamId, body } : { body });
       setDraft("");
       setSendError(null);
     } catch (error) {
@@ -114,9 +306,7 @@ export function ChatPanel({
     <div className="flex min-h-[320px] flex-col border-2 border-border bg-card shadow-brutal lg:min-h-0">
       <div className="flex flex-none items-center justify-between bg-bar px-3.5 py-[9px] text-bar-ink">
         <span className="font-display text-[13px] uppercase">Live Chat</span>
-        {live && (
-          <span className="font-mono text-[11px] text-bar-muted">[{formatThousands(viewers)} ONLINE]</span>
-        )}
+        <span className="font-mono text-[11px] text-bar-muted">[{formatThousands(viewers)} ONLINE]</span>
       </div>
 
       {banned ? (
@@ -133,11 +323,39 @@ export function ChatPanel({
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto bg-background px-3.5 py-3">
           {messages.map((m) => (
-            <div key={m._id} className="mb-[9px] text-sm leading-tight break-words">
-              <span className="font-sans text-[13px] font-bold" style={{ color: colorFor(m.authorName) }}>
-                {m.authorName}
-              </span>
-              <span className="text-muted-foreground">:</span> {renderBody(m.body, emojiUrls)}
+            <div
+              key={m._id}
+              className={`mb-[9px] text-sm leading-tight break-words ${m.removed ? "opacity-50" : ""}`}
+            >
+              <UserNamePopover
+                userId={m.userId}
+                name={m.authorName}
+                color={colorFor(m.authorName)}
+                isAdmin={isAdmin}
+              />
+              <span className="text-muted-foreground">:</span>{" "}
+              {m.removed ? (
+                <span className="text-muted-foreground line-through">
+                  {renderBody(m.body, emojiUrls)}
+                </span>
+              ) : (
+                renderBody(m.body, emojiUrls)
+              )}
+              {m.removed && (
+                <span className="ml-1 font-mono text-[10px] text-primary uppercase">
+                  [removed]
+                </span>
+              )}
+              {isAdmin && !m.removed && (
+                <button
+                  type="button"
+                  aria-label="Remove message"
+                  onClick={() => removeMessage({ messageId: m._id })}
+                  className="ml-1.5 cursor-pointer font-mono text-[11px] text-muted-foreground hover:text-primary"
+                >
+                  ✕
+                </button>
+              )}
             </div>
           ))}
         </div>

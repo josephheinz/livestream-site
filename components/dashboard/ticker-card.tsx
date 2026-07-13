@@ -6,7 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { TitledCard } from "@/components/ui/titled-card";
 
 // Admin editor for the ticker-tape lines (one per row), persisted via
-// settings.setTickerItems; live/next-broadcast items stay derived.
+// settings.setTickerItems; live status stays derived.
 export function TickerCard() {
   const settings = useQuery(api.settings.get);
   const save = useMutation(api.settings.setTickerItems);
@@ -35,8 +35,7 @@ export function TickerCard() {
         className="w-full resize-y border border-border bg-input px-2.5 py-2 font-mono text-[13px] text-foreground outline-none"
       />
       <p className="mt-2 font-mono text-[12px] text-muted-foreground">
-        Scrolls in the bottom tape on every page. On-air and next-broadcast lines are added
-        automatically.
+        Scrolls in the bottom tape on every page. On-air status is added automatically.
       </p>
     </TitledCard>
   );

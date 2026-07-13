@@ -29,23 +29,38 @@ type Message = {
   body: string;
   authorName: string;
   authorImageUrl?: string;
+  userId?: string;
+  removed?: boolean;
 };
 type Emoji = { _id: string; name: string; imageUrl: string | null };
 
-function mockData(opts: { messages?: Message[]; emojis?: Emoji[] }) {
+type Profile = {
+  createdAt: number;
+  messages: Array<{ _id: string; body: string; createdAt: number; removed: boolean }>;
+};
+
+function mockData(opts: {
+  messages?: Message[];
+  emojis?: Emoji[];
+  admin?: boolean;
+  profile?: Profile;
+}) {
   useQuery.mockImplementation((ref: unknown) => {
     if (ref == null) return undefined;
     const name = getFunctionName(ref as never);
     if (name === getFunctionName(api.chat.list)) return opts.messages ?? [];
+    if (name === getFunctionName(api.chat.userProfile)) return opts.profile;
     if (name === getFunctionName(api.emojis.list)) return opts.emojis ?? [];
+    if (name === getFunctionName(api.users.me))
+      return opts.admin ? { role: "admin" } : null;
     return undefined;
   });
 }
 
-function renderPanel(live = true) {
+function renderPanel(streamId: Id<"streams"> | null = "s1" as Id<"streams">) {
   return render(
     <AuthModalProvider>
-      <ChatPanel streamId={"s1" as Id<"streams">} live={live} viewers={1204} />
+      <ChatPanel streamId={streamId ?? undefined} viewers={1204} />
     </AuthModalProvider>,
   );
 }
@@ -129,19 +144,24 @@ describe("ChatPanel (wired)", () => {
     expect(screen.queryByPlaceholderText("Say something...")).toBeNull();
   });
 
-  it("off-air: chat stays open — signed-in viewers can still send", async () => {
+  it("always shows the online count in the header", () => {
+    mockData({});
+    renderPanel();
+    expect(screen.getByText("[1,204 ONLINE]")).toBeInTheDocument();
+  });
+
+  it("no bound stream: send still works — the backend resolves the current stream", async () => {
     authState.isSignedIn = true;
     sendMock.mockResolvedValue(undefined);
     mockData({});
-    renderPanel(false);
+    renderPanel(null);
 
-    const input = screen.getByPlaceholderText("Say something...");
-    fireEvent.change(input, { target: { value: "hi from off-air" } });
+    fireEvent.change(screen.getByPlaceholderText("Say something..."), {
+      target: { value: "anyone there?" },
+    });
     fireEvent.click(screen.getByText("Send"));
 
-    await waitFor(() =>
-      expect(sendMock).toHaveBeenCalledWith({ streamId: "s1", body: "hi from off-air" }),
-    );
+    await waitFor(() => expect(sendMock).toHaveBeenCalledWith({ body: "anyone there?" }));
   });
 
   it("surfaces other send errors inline instead of eating the message", async () => {
@@ -170,6 +190,44 @@ describe("ChatPanel (wired)", () => {
     expect((screen.getByPlaceholderText("Say something...") as HTMLInputElement).value).toBe("🔥");
   });
 
+  it("admin: shows a remove button per message and calls chat.remove", async () => {
+    authState.isSignedIn = true;
+    sendMock.mockResolvedValue(undefined);
+    mockData({
+      admin: true,
+      messages: [
+        { _id: "m1", body: "rude thing", authorName: "orb_watcher", userId: "u1" },
+      ],
+    });
+    renderPanel();
+
+    fireEvent.click(screen.getByLabelText("Remove message"));
+    await waitFor(() => expect(sendMock).toHaveBeenCalledWith({ messageId: "m1" }));
+  });
+
+  it("non-admin: no remove button, removed messages are not present", () => {
+    authState.isSignedIn = true;
+    mockData({
+      messages: [{ _id: "m1", body: "hi", authorName: "orb_watcher", userId: "u1" }],
+    });
+    renderPanel();
+    expect(screen.queryByLabelText("Remove message")).toBeNull();
+  });
+
+  it("admin: a removed message renders struck-through with a [removed] tag", () => {
+    authState.isSignedIn = true;
+    mockData({
+      admin: true,
+      messages: [
+        { _id: "m1", body: "bad", authorName: "orb_watcher", userId: "u1", removed: true },
+      ],
+    });
+    renderPanel();
+    expect(screen.getByText("[removed]")).toBeInTheDocument();
+    // removed messages get no remove button (already gone)
+    expect(screen.queryByLabelText("Remove message")).toBeNull();
+  });
+
   it("renders :name: tokens as <img> for active emojis and literal text for unknown", () => {
     authState.isSignedIn = true;
     mockData({
@@ -182,5 +240,22 @@ describe("ChatPanel (wired)", () => {
     expect(img.tagName).toBe("IMG");
     expect(img.src).toBe("https://img.test/party.png");
     expect(screen.getByText(/:nope:/)).toBeInTheDocument();
+  });
+
+  it("renders profile-history dates as labeled separators without dash text", () => {
+    const createdAt = Date.UTC(2026, 6, 14, 16);
+    mockData({
+      messages: [{ _id: "m1", body: "hello", authorName: "vhs", userId: "u1" }],
+      profile: {
+        createdAt,
+        messages: [{ _id: "pm1", body: "hello", createdAt, removed: false }],
+      },
+    });
+    renderPanel();
+
+    fireEvent.click(screen.getByText("vhs"));
+
+    expect(screen.getByRole("separator", { name: "jul 14" })).toBeInTheDocument();
+    expect(screen.queryByText(/----/)).toBeNull();
   });
 });

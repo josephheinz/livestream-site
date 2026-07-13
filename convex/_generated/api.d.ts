@@ -16,6 +16,7 @@ import type * as emojis from "../emojis.js";
 import type * as http from "../http.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_bans from "../lib/bans.js";
+import type * as lib_currentStream from "../lib/currentStream.js";
 import type * as presence from "../presence.js";
 import type * as reactions from "../reactions.js";
 import type * as settings from "../settings.js";
@@ -37,6 +38,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "lib/auth": typeof lib_auth;
   "lib/bans": typeof lib_bans;
+  "lib/currentStream": typeof lib_currentStream;
   presence: typeof presence;
   reactions: typeof reactions;
   settings: typeof settings;

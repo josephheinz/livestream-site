@@ -3,14 +3,13 @@
 import { useEffect } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
 
 // 20 s heartbeats survive one dropped request inside the backend's 60 s fresh
 // window (research D4).
 const HEARTBEAT_MS = 20_000;
 const SESSION_KEY = "livestream-presence-session";
 
-/** Per-tab id: kept in sessionStorage so multiple tabs count as distinct sessions. */
+/** Per-tab id: lets the backend keep the latest tab as the session owner. */
 function sessionId(): string {
   let id = sessionStorage.getItem(SESSION_KEY);
   if (id === null) {
@@ -21,32 +20,35 @@ function sessionId(): string {
 }
 
 /**
- * Heartbeat presence while the Watch page is mounted and visible; leave on
- * unmount and on pagehide (research D4). No-op until a live stream id is known.
+ * Heartbeat while mounted and visible; leave when hidden or closed. The
+ * backend binds the session to the current stream, so this works on or off air.
  */
-export function usePresence(streamId: Id<"streams"> | undefined) {
+export function usePresence() {
   const heartbeat = useMutation(api.presence.heartbeat);
   const leave = useMutation(api.presence.leave);
 
   useEffect(() => {
-    if (streamId === undefined) return;
     const id = sessionId();
 
     const beat = () => {
       if (document.visibilityState === "visible") {
-        void heartbeat({ streamId, sessionId: id });
+        void heartbeat({ sessionId: id });
       }
     };
     beat();
     const interval = setInterval(beat, HEARTBEAT_MS);
 
-    const onPageHide = () => void leave({ streamId, sessionId: id });
-    window.addEventListener("pagehide", onPageHide);
+    const depart = () => void leave({ sessionId: id });
+    const onVisibilityChange = () =>
+      document.visibilityState === "visible" ? beat() : depart();
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("pagehide", depart);
 
     return () => {
       clearInterval(interval);
-      window.removeEventListener("pagehide", onPageHide);
-      void leave({ streamId, sessionId: id });
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("pagehide", depart);
+      depart();
     };
-  }, [streamId, heartbeat, leave]);
+  }, [heartbeat, leave]);
 }

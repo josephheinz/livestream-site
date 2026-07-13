@@ -206,3 +206,40 @@ test("update edits metadata without changing status", async () => {
     status: "scheduled",
   });
 });
+
+test("current: live wins, else soonest scheduled, else latest ended (no recording needed)", async () => {
+  const t = setup();
+  const admin = await asAdmin(t);
+  const now = Date.now();
+
+  // Nothing at all → null.
+  expect(await t.query(api.streams.current)).toBeNull();
+
+  // Only an ended stream WITHOUT a recording → still bindable for chat.
+  await seedEnded(admin, "old show", now - 5_000_000);
+  expect((await t.query(api.streams.current))?.title).toBe("old show");
+
+  // A scheduled stream outranks the ended one.
+  await admin.mutation(api.streams.create, {
+    title: "next up",
+    scheduledStart: now + 1_000_000,
+  });
+  expect((await t.query(api.streams.current))?.title).toBe("next up");
+
+  // Live outranks everything.
+  const liveId = await admin.mutation(api.streams.create, {
+    title: "on air",
+    scheduledStart: now,
+  });
+  await admin.mutation(api.streams.goLive, { streamId: liveId });
+  expect((await t.query(api.streams.current))?.title).toBe("on air");
+});
+
+test("current: sanitizes origin URLs for non-admins", async () => {
+  const t = setup();
+  const admin = await asAdmin(t);
+  await seedEnded(admin, "with tape", Date.now() - 1_000_000, ORIGIN_RECORDING_URL);
+
+  const current = await t.query(api.streams.current);
+  expect(current?.recordingUrl).not.toContain("SECRET_KEY");
+});

@@ -68,6 +68,8 @@ function mockData(opts: {
     const name = getFunctionName(ref as never);
     if (name === getFunctionName(api.streams.getLive)) return opts.live ?? null;
     if (name === getFunctionName(api.streams.listUpcoming)) return opts.upcoming ?? [];
+    if (name === getFunctionName(api.streams.current))
+      return opts.live ?? opts.upcoming?.[0] ?? null;
     if (name === getFunctionName(api.settings.get))
       return opts.tickerItems ? { tickerItems: opts.tickerItems } : null;
     if (name === getFunctionName(api.presence.count)) return args === "skip" ? undefined : (opts.viewers ?? 0);

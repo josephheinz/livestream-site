@@ -1,7 +1,8 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
-import { requireAdmin, requireUser } from "./lib/auth";
+import { getCurrentUser, requireAdmin, requireUser } from "./lib/auth";
+import { ensureCurrent } from "./lib/currentStream";
 import { isBanned } from "./lib/bans";
 
 const MAX_BODY_CHARS = 500;
@@ -11,14 +12,18 @@ const LIST_LIMIT = 100;
 export const list = query({
   args: { streamId: v.id("streams") },
   handler: async (ctx, { streamId }) => {
+    // Admins see soft-deleted messages (flagged) for moderation; everyone else
+    // gets them hidden (research D8).
+    const viewer = await getCurrentUser(ctx);
+    const isAdmin = viewer?.role === "admin";
     const messages: Doc<"chatMessages">[] = [];
     const newestFirst = ctx.db
       .query("chatMessages")
       .withIndex("by_stream", (q) => q.eq("streamId", streamId))
       .order("desc");
     for await (const message of newestFirst) {
-      if (message.removed) {
-        continue; // soft-deleted by moderation (research D8)
+      if (message.removed && !isAdmin) {
+        continue;
       }
       messages.push(message);
       if (messages.length >= LIST_LIMIT) {
@@ -38,7 +43,9 @@ export const list = query({
         _id: message._id,
         _creationTime: message._creationTime,
         streamId: message.streamId,
+        userId: message.userId,
         body: message.body,
+        removed: message.removed, // always false for non-admins (filtered above)
         // author row may be gone after a Clerk user.deleted (research D11)
         authorName: author?.name ?? "Deleted user",
         authorImageUrl: author?.imageUrl,
@@ -48,8 +55,41 @@ export const list = query({
   },
 });
 
+// Powers the click-a-name popover: the user's profile plus their full chat
+// history (across all streams), oldest → newest for day-grouped display.
+export const userProfile = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    const user = await ctx.db.get(userId);
+    if (user === null) {
+      return null;
+    }
+    // Admins see removed messages (flagged); everyone else gets them hidden.
+    const viewer = await getCurrentUser(ctx);
+    const isAdmin = viewer?.role === "admin";
+    // Bounded to one user's messages via the existing index; collect + sort is
+    // fine at this scale. ponytail: cap at 500 if a single user ever floods.
+    const rows = await ctx.db
+      .query("chatMessages")
+      .withIndex("by_user_and_stream", (q) => q.eq("userId", userId))
+      .collect();
+    const messages = rows
+      .filter((m) => isAdmin || !m.removed)
+      .sort((a, b) => a._creationTime - b._creationTime)
+      .map((m) => ({
+        _id: m._id,
+        body: m.body,
+        createdAt: m._creationTime,
+        removed: m.removed,
+      }));
+    return { name: user.name, createdAt: user._creationTime, messages };
+  },
+});
+
 export const send = mutation({
-  args: { streamId: v.id("streams"), body: v.string() },
+  // streamId is optional: chat is always open, and when omitted the message
+  // attaches to the current stream (bootstrapped if none exists yet).
+  args: { streamId: v.optional(v.id("streams")), body: v.string() },
   handler: async (ctx, { streamId, body }) => {
     const user = await requireUser(ctx);
     if (await isBanned(ctx, user._id)) {
@@ -62,16 +102,20 @@ export const send = mutation({
     if (trimmed.length > MAX_BODY_CHARS) {
       throw new Error(`Message exceeds ${MAX_BODY_CHARS} characters`);
     }
-    // Chat is always open — messages just need a real stream to attach to.
-    const stream = await ctx.db.get(streamId);
-    if (stream === null) {
-      throw new Error("Stream not found");
+    let stream;
+    if (streamId !== undefined) {
+      stream = await ctx.db.get(streamId);
+      if (stream === null) {
+        throw new Error("Stream not found");
+      }
+    } else {
+      stream = await ensureCurrent(ctx);
     }
     // Rate limit (FR-014, research D5): one indexed read inside the transaction.
     const last = await ctx.db
       .query("chatMessages")
       .withIndex("by_user_and_stream", (q) =>
-        q.eq("userId", user._id).eq("streamId", streamId),
+        q.eq("userId", user._id).eq("streamId", stream._id),
       )
       .order("desc")
       .first();
@@ -79,7 +123,7 @@ export const send = mutation({
       throw new Error("Slow down — one message every 2 seconds");
     }
     return await ctx.db.insert("chatMessages", {
-      streamId,
+      streamId: stream._id,
       userId: user._id,
       body: trimmed,
       removed: false,

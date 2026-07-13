@@ -52,6 +52,30 @@ describe("StreamHeading", () => {
     render(<StreamHeading title="LATE NIGHT TAPES" live />);
     expect(screen.getByRole("heading")).toHaveTextContent("LATE NIGHT TAPES");
   });
+
+  it("renders MiniMessage formatting without activating forbidden effects", () => {
+    const { rerender } = render(
+      <StreamHeading title="<green><bold>MAIN FEED</bold></green>" live />,
+    );
+    const heading = screen.getByRole("heading");
+    expect(heading).toHaveTextContent("MAIN FEED");
+    expect(heading).not.toHaveTextContent("<green>");
+    expect(heading.querySelector('[style*="color"]')).not.toBeNull();
+    expect(heading.querySelector('[style*="font-weight"]')).not.toBeNull();
+
+    rerender(<StreamHeading title="<obf>SECRET</obf><head:Notch>" live />);
+    expect(heading).toHaveTextContent("SECRET");
+    expect(heading).not.toHaveTextContent("<obf>");
+    expect(heading.querySelector("[data-mm-obfuscated], canvas, img")).toBeNull();
+  });
+
+  it("falls back to plain text for malformed MiniMessage", () => {
+    render(<StreamHeading title="<green>UNFINISHED" live />);
+    const heading = screen.getByRole("heading");
+
+    expect(heading).toHaveTextContent("UNFINISHED");
+    expect(heading.querySelector('[style*="color"]')).toBeNull();
+  });
 });
 
 describe("StreamTitleCard (dashboard editor — wired to streams.update)", () => {
