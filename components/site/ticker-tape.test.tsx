@@ -30,6 +30,15 @@ describe("tickerItemsFor", () => {
     expect(text).toMatch(/OFF AIR/);
   });
 
+  it("appends the admin-authored lines from settings", () => {
+    const items = tickerItemsFor(null, [], ["MERCH DROP FRIDAY", "DAY 115"]);
+    const text = items.map((i) => i.text).join(" | ");
+    expect(text).toContain("MERCH DROP FRIDAY");
+    expect(text).toContain("DAY 115");
+    // Custom lines present → no off-air filler.
+    expect(text).not.toMatch(/OFF AIR/);
+  });
+
   it("never emits the static marketing lines", () => {
     for (const args of [
       tickerItemsFor(LIVE, UPCOMING),

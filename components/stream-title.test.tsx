@@ -5,12 +5,14 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 
 const updateMock = vi.fn();
+const createMock = vi.fn();
 const useQuery = vi.fn();
 vi.mock("convex/react", () => ({
   useQuery: (ref: unknown, args?: unknown) => useQuery(ref, args),
   useMutation: (ref: unknown) => {
     const name = getFunctionName(ref as never);
     if (name === getFunctionName(api.streams.update)) return updateMock;
+    if (name === getFunctionName(api.streams.create)) return createMock;
     return vi.fn();
   },
 }));
@@ -34,6 +36,7 @@ function mockData(opts: { admin?: boolean; live?: Stream | null; upcoming?: Stre
 beforeEach(() => {
   useQuery.mockReset();
   updateMock.mockReset();
+  createMock.mockReset();
 });
 afterEach(() => vi.clearAllMocks());
 
@@ -69,6 +72,20 @@ describe("StreamTitleCard (dashboard editor — wired to streams.update)", () =>
     await waitFor(() =>
       expect(updateMock).toHaveBeenCalledWith({ streamId: "s1", title: "GRAVEYARD SHIFT" })
     );
+  });
+
+  it("creates the stream row when nothing is live or scheduled (edit still lands)", async () => {
+    mockData({ admin: true, live: null, upcoming: [] });
+    render(<StreamTitleCard />);
+    const input = screen.getByLabelText("Stream title");
+    fireEvent.change(input, { target: { value: "FIRST BROADCAST" } });
+    fireEvent.blur(input);
+    await waitFor(() =>
+      expect(createMock).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "FIRST BROADCAST" }),
+      ),
+    );
+    expect(updateMock).not.toHaveBeenCalled();
   });
 
   it("offers no edit affordance to a non-admin (read-only)", () => {

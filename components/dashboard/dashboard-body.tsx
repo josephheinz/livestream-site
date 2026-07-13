@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { StatRow } from "./stat-row";
 import { StreamTitleCard } from "./stream-title-card";
+import { TickerCard } from "./ticker-card";
 import { ExternalConnections } from "./external-connections";
 import { BroadcastCard } from "./broadcast-card";
 import { BannedUsers } from "./banned-users";
@@ -69,7 +70,10 @@ export function DashboardBody() {
 
       <StatRow stats={stats} />
 
-      <StreamTitleCard />
+      <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 md:items-start">
+        <StreamTitleCard />
+        <TickerCard />
+      </div>
 
       <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 md:items-start">
         <ExternalConnections />

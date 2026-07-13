@@ -5,7 +5,6 @@ import { api } from "@/convex/_generated/api";
 import { Banner } from "@/components/site/banner";
 import { TickerTape, tickerItemsFor } from "@/components/site/ticker-tape";
 import { ConnectionStatus } from "@/components/site/connection-status";
-import { Footer } from "@/components/site/footer";
 import { Player } from "@/components/watch/player";
 import { StreamHeading } from "@/components/watch/stream-heading";
 import { ChatPanel } from "@/components/watch/chat-panel";
@@ -17,6 +16,7 @@ const CHANNEL_NAME = "Joseph Heinz";
 export default function WatchPage() {
   const live = useQuery(api.streams.getLive);
   const upcoming = useQuery(api.streams.listUpcoming);
+  const settings = useQuery(api.settings.get);
   const streamId = live?._id;
   const viewers = useQuery(api.presence.count, streamId ? { streamId } : "skip") ?? 0;
   usePresence(streamId);
@@ -36,8 +36,7 @@ export default function WatchPage() {
         <ChatPanel streamId={streamId} live={isLive} viewers={viewers} />
       </main>
       <ConnectionStatus />
-      <TickerTape items={tickerItemsFor(live, upcoming)} />
-      <Footer />
+      <TickerTape items={tickerItemsFor(live, upcoming, settings?.tickerItems)} />
     </div>
   );
 }

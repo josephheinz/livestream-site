@@ -3,7 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getFunctionName } from "convex/server";
 import { api } from "@/convex/_generated/api";
 
-vi.mock("next/navigation", () => ({ usePathname: () => "/dashboard" }));
+const replace = vi.fn();
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/dashboard",
+  useRouter: () => ({ replace, push: vi.fn() }),
+}));
 vi.mock("next/link", () => ({
   default: ({ href, children, ...props }: never) => {
     const p = props as Record<string, unknown>;
@@ -23,11 +27,18 @@ vi.mock("convex/react", () => ({
   useConvexConnectionState: () => ({ isWebSocketConnected: true, hasEverConnected: true }),
 }));
 
+vi.mock("@clerk/nextjs", () => ({
+  useUser: () => ({ isSignedIn: false, user: null }),
+  useClerk: () => ({ signOut: vi.fn() }),
+  useSignIn: () => ({ isLoaded: true, signIn: { create: vi.fn() }, setActive: vi.fn() }),
+  useSignUp: () => ({ isLoaded: true, signUp: { create: vi.fn() }, setActive: vi.fn() }),
+}));
+
 import Page from "./page";
-import { ThemeProvider } from "@/components/theme/theme-provider";
 import { AuthModalProvider } from "@/components/site/auth-modal";
 
-type Me = { role?: "admin" } | null;
+// `undefined` = still loading; null = signed out; role omitted = non-admin.
+type Me = { role?: "admin" } | null | undefined;
 
 function mockData(opts: { me: Me }) {
   useQuery.mockImplementation((ref: unknown, args?: unknown) => {
@@ -37,6 +48,7 @@ function mockData(opts: { me: Me }) {
     if (name === getFunctionName(api.streams.getLive)) return null;
     if (name === getFunctionName(api.streams.listUpcoming)) return [];
     if (name === getFunctionName(api.bans.list)) return [];
+    if (name === getFunctionName(api.settings.get)) return null;
     if (name === getFunctionName(api.presence.count)) return args === "skip" ? undefined : 0;
     return undefined;
   });
@@ -44,15 +56,16 @@ function mockData(opts: { me: Me }) {
 
 function renderDash() {
   return render(
-    <ThemeProvider>
-      <AuthModalProvider>
-        <Page />
-      </AuthModalProvider>
-    </ThemeProvider>
+    <AuthModalProvider>
+      <Page />
+    </AuthModalProvider>,
   );
 }
 
-beforeEach(() => useQuery.mockReset());
+beforeEach(() => {
+  useQuery.mockReset();
+  replace.mockReset();
+});
 afterEach(() => vi.clearAllMocks());
 
 describe("Dashboard route (/dashboard)", () => {
@@ -62,22 +75,28 @@ describe("Dashboard route (/dashboard)", () => {
     expect(screen.getByText("RESTRICTED — BROADCAST CONTROLS")).toBeInTheDocument();
     expect(screen.getAllByTestId("stat-bar")).toHaveLength(4);
     expect(screen.getByText("Banned Users")).toBeInTheDocument();
-    expect(screen.queryByText(/Access Denied/i)).toBeNull();
+    expect(screen.getByText("Ticker Tape")).toBeInTheDocument();
+    expect(replace).not.toHaveBeenCalled();
   });
 
-  it("non-admin gets the denied state with no admin data (FR-002)", () => {
+  it("non-admin renders nothing and is redirected home (FR-002)", () => {
     mockData({ me: { role: undefined } });
-    renderDash();
-    expect(screen.getByText(/Access Denied/i)).toBeInTheDocument();
-    expect(screen.queryAllByTestId("stat-bar")).toHaveLength(0);
-    expect(screen.queryByText("Banned Users")).toBeNull();
+    const { container } = renderDash();
+    expect(container.textContent).toBe("");
+    expect(replace).toHaveBeenCalledWith("/");
   });
 
-  it("signed-out visitor gets the denied state with no admin data (FR-002)", () => {
+  it("signed-out visitor renders nothing and is redirected home (FR-002)", () => {
     mockData({ me: null });
+    const { container } = renderDash();
+    expect(container.textContent).toBe("");
+    expect(replace).toHaveBeenCalledWith("/");
+  });
+
+  it("does not redirect while the identity is still loading", () => {
+    mockData({ me: undefined });
     renderDash();
-    expect(screen.getByText(/Access Denied/i)).toBeInTheDocument();
-    expect(screen.queryAllByTestId("stat-bar")).toHaveLength(0);
+    expect(replace).not.toHaveBeenCalled();
   });
 
   it("no query-param state forcing: the page reads no searchParams (FR-006)", () => {

@@ -17,6 +17,7 @@ export function useStreamTitle(): {
   const live = useQuery(api.streams.getLive);
   const upcoming = useQuery(api.streams.listUpcoming);
   const update = useMutation(api.streams.update);
+  const create = useMutation(api.streams.create);
 
   const bound = live ?? upcoming?.[0] ?? null;
   const streamId = bound?._id;
@@ -26,9 +27,13 @@ export function useStreamTitle(): {
     (title: string) => {
       if (streamId !== undefined) {
         void update({ streamId, title });
+      } else {
+        // Nothing scheduled yet: create the stream row so the edit lands
+        // somewhere (mirrors the go-live create fallback, D8).
+        void create({ title, scheduledStart: Date.now() });
       }
     },
-    [streamId, update],
+    [streamId, update, create],
   );
 
   return { title: bound?.title ?? "", canEdit, save };

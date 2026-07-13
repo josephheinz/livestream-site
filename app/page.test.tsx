@@ -45,23 +45,31 @@ vi.mock("convex/react", () => ({
 }));
 
 // ChatPanel derives its mode from Clerk (research D5); the page test only needs
-// the signed-out branch.
+// the signed-out branch. Banner additionally reads useUser/useClerk.
 vi.mock("@clerk/nextjs", () => ({
   useAuth: () => ({ isSignedIn: false, isLoaded: true }),
+  useUser: () => ({ isSignedIn: false, user: null }),
+  useClerk: () => ({ signOut: vi.fn() }),
 }));
 
 import Page from "./page";
-import { ThemeProvider } from "@/components/theme/theme-provider";
 import { AuthModalProvider } from "@/components/site/auth-modal";
 
 type Stream = { _id: Id<"streams">; title: string; status: string; scheduledStart: number };
 
-function mockData(opts: { live?: Stream | null; upcoming?: Stream[]; viewers?: number }) {
+function mockData(opts: {
+  live?: Stream | null;
+  upcoming?: Stream[];
+  viewers?: number;
+  tickerItems?: string[];
+}) {
   useQuery.mockImplementation((ref: unknown, args?: unknown) => {
     if (ref == null) return undefined;
     const name = getFunctionName(ref as never);
     if (name === getFunctionName(api.streams.getLive)) return opts.live ?? null;
     if (name === getFunctionName(api.streams.listUpcoming)) return opts.upcoming ?? [];
+    if (name === getFunctionName(api.settings.get))
+      return opts.tickerItems ? { tickerItems: opts.tickerItems } : null;
     if (name === getFunctionName(api.presence.count)) return args === "skip" ? undefined : (opts.viewers ?? 0);
     return undefined;
   });
@@ -69,11 +77,9 @@ function mockData(opts: { live?: Stream | null; upcoming?: Stream[]; viewers?: n
 
 function renderWatch() {
   return render(
-    <ThemeProvider>
-      <AuthModalProvider>
-        <Page />
-      </AuthModalProvider>
-    </ThemeProvider>
+    <AuthModalProvider>
+      <Page />
+    </AuthModalProvider>,
   );
 }
 
@@ -115,5 +121,11 @@ describe("Watch route (/)", () => {
   it("imports no placeholder mock-data (SC-005)", () => {
     const source = readFileSync("app/page.tsx", "utf8");
     expect(source).not.toMatch(/lib\/mock-data/);
+  });
+
+  it("renders admin-authored ticker lines from settings", () => {
+    mockData({ live: null, upcoming: [], tickerItems: ["MERCH DROP FRIDAY"] });
+    renderWatch();
+    expect(screen.getAllByText("MERCH DROP FRIDAY").length).toBeGreaterThan(0);
   });
 });

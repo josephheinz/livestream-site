@@ -42,10 +42,10 @@ function mockData(opts: { messages?: Message[]; emojis?: Emoji[] }) {
   });
 }
 
-function renderPanel() {
+function renderPanel(live = true) {
   return render(
     <AuthModalProvider>
-      <ChatPanel streamId={"s1" as Id<"streams">} live viewers={1204} />
+      <ChatPanel streamId={"s1" as Id<"streams">} live={live} viewers={1204} />
     </AuthModalProvider>,
   );
 }
@@ -127,6 +127,40 @@ describe("ChatPanel (wired)", () => {
 
     expect(await screen.findByText("Sign in to chat")).toBeInTheDocument();
     expect(screen.queryByPlaceholderText("Say something...")).toBeNull();
+  });
+
+  it("off-air: signed-in viewers see the chat-opens-when-live note, no composer", () => {
+    authState.isSignedIn = true;
+    mockData({});
+    renderPanel(false);
+    expect(screen.getByText(/Chat opens when the stream is live/i)).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Say something...")).toBeNull();
+  });
+
+  it("surfaces other send errors inline instead of eating the message", async () => {
+    authState.isSignedIn = true;
+    sendMock.mockRejectedValue(new Error("Slow down — one message every 2 seconds"));
+    mockData({});
+    renderPanel();
+
+    fireEvent.change(screen.getByPlaceholderText("Say something..."), {
+      target: { value: "spam spam" },
+    });
+    fireEvent.click(screen.getByText("Send"));
+
+    expect(await screen.findByText(/Slow down/)).toBeInTheDocument();
+    // Composer stays; the draft is not cleared.
+    expect(screen.getByPlaceholderText("Say something...")).toBeInTheDocument();
+  });
+
+  it("emoji picker always offers the unicode set and inserts into the draft", () => {
+    authState.isSignedIn = true;
+    mockData({ emojis: [] });
+    renderPanel();
+
+    fireEvent.click(screen.getByLabelText("Emoji picker"));
+    fireEvent.click(screen.getByLabelText("emoji 🔥"));
+    expect((screen.getByPlaceholderText("Say something...") as HTMLInputElement).value).toBe("🔥");
   });
 
   it("renders :name: tokens as <img> for active emojis and literal text for unknown", () => {

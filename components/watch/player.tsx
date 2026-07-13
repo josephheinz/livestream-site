@@ -107,22 +107,24 @@ export function Player({ live }: { live: boolean }) {
         </div>
       )}
 
-      <div
-        data-testid="player-controls"
-        className="absolute right-2.5 bottom-2.5 left-2.5 flex items-center gap-2.5 border border-[rgba(200,190,165,.25)] bg-[rgba(22,20,15,.72)] px-2.5 py-[7px] backdrop-blur-[5px]"
-      >
-        <div className={`${ctrlBtn} text-[11px]`}>❚❚</div>
-        <div className="min-w-[44px] text-center font-mono text-[12px] font-bold">
-          {live ? <span className="text-[#d47a72]">LIVE</span> : <span className="text-[#847d6a]">--:--</span>}
+      {live && (
+        <div
+          data-testid="player-controls"
+          className="absolute right-2.5 bottom-2.5 left-2.5 flex items-center gap-2.5 border border-[rgba(200,190,165,.25)] bg-[rgba(22,20,15,.72)] px-2.5 py-[7px] backdrop-blur-[5px]"
+        >
+          <div className={`${ctrlBtn} text-[11px]`}>❚❚</div>
+          <div className="min-w-[44px] text-center font-mono text-[12px] font-bold">
+            <span className="text-[#d47a72]">LIVE</span>
+          </div>
+          <div className="relative h-1.5 flex-1 bg-[rgba(200,190,165,.2)]">
+            <div className="absolute inset-y-0 left-0 w-full bg-primary" />
+            <div className="absolute -top-1 -right-0.5 h-[13px] w-[13px] border border-[#16140f] bg-[#d6cfbc]" />
+          </div>
+          <div className={`${ctrlBtn} font-sans text-[10px] font-bold`}>CC</div>
+          <div className={`${ctrlBtn} text-[13px]`}>⚙</div>
+          <div className={`${ctrlBtn} text-[14px]`}>⛶</div>
         </div>
-        <div className="relative h-1.5 flex-1 bg-[rgba(200,190,165,.2)]">
-          <div className="absolute inset-y-0 left-0 w-full bg-primary" />
-          <div className="absolute -top-1 -right-0.5 h-[13px] w-[13px] border border-[#16140f] bg-[#d6cfbc]" />
-        </div>
-        <div className={`${ctrlBtn} font-sans text-[10px] font-bold`}>CC</div>
-        <div className={`${ctrlBtn} text-[13px]`}>⚙</div>
-        <div className={`${ctrlBtn} text-[14px]`}>⛶</div>
-      </div>
+      )}
     </div>
   );
 }

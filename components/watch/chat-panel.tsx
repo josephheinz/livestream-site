@@ -21,6 +21,10 @@ function colorFor(name: string): string {
   return NAME_COLORS[Math.abs(h) % NAME_COLORS.length];
 }
 
+// Quick-pick unicode set so the picker always has content even before any
+// custom emojis are uploaded.
+const UNICODE_EMOJIS = ["😀", "😂", "🔥", "❤️", "👍", "👏", "😮", "😢", "🎉", "💀"];
+
 const TOKEN = /(:[a-zA-Z0-9_+-]+:)/g;
 // Custom emojis embed as :name: tokens (research D6): known active ones render
 // as inline images, unknown/deactivated ones fall back to literal text.
@@ -69,6 +73,7 @@ export function ChatPanel({
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [banned, setBanned] = React.useState(false);
   const [authExpired, setAuthExpired] = React.useState(false);
+  const [sendError, setSendError] = React.useState<string | null>(null);
 
   // Bounded (≤200 active emojis); cheap to rebuild each render.
   const emojiUrls = new Map<string, string>();
@@ -88,6 +93,7 @@ export function ChatPanel({
     try {
       await send({ streamId, body });
       setDraft("");
+      setSendError(null);
     } catch (error) {
       const message = error instanceof Error ? error.message : "";
       // Exact ban string is the contract signal to show the banned notice (D5).
@@ -96,6 +102,10 @@ export function ChatPanel({
       } else if (message.includes("Must be signed in")) {
         // Mid-session auth expiry: revert to the signed-out prompt (spec edge case).
         setAuthExpired(true);
+      } else {
+        // Anything else (rate limit, stream just ended, …) surfaces inline
+        // instead of silently eating the message.
+        setSendError(message.replace(/^.*Uncaught Error:\s*/, "") || "Could not send — try again");
       }
     }
   };
@@ -133,10 +143,29 @@ export function ChatPanel({
         </div>
       )}
 
-      {signedIn && (
+      {signedIn && !live && (
+        <div className="flex-none border-t border-border bg-card p-3 text-center font-mono text-[12px] tracking-[.08em] text-muted-foreground uppercase">
+          Chat opens when the stream is live
+        </div>
+      )}
+      {signedIn && live && (
         <div className="flex-none">
-          {pickerOpen && emojis.length > 0 && (
+          {pickerOpen && (
             <div className="flex flex-wrap gap-1.5 border-t border-border bg-card p-2">
+              {UNICODE_EMOJIS.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  aria-label={`emoji ${emoji}`}
+                  onClick={() => {
+                    setDraft((d) => `${d}${emoji}`);
+                    setPickerOpen(false);
+                  }}
+                  className="flex h-7 w-7 cursor-pointer items-center justify-center text-lg"
+                >
+                  {emoji}
+                </button>
+              ))}
               {emojis.map((emoji) =>
                 emoji.imageUrl !== null ? (
                   <button
@@ -147,7 +176,7 @@ export function ChatPanel({
                       setDraft((d) => `${d}:${emoji.name}:`);
                       setPickerOpen(false);
                     }}
-                    className="flex h-7 w-7 items-center justify-center"
+                    className="flex h-7 w-7 cursor-pointer items-center justify-center"
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element -- dynamic Convex-storage emoji URL */}
                     <img src={emoji.imageUrl} alt={emoji.name} className="h-5 w-5" />
@@ -156,12 +185,17 @@ export function ChatPanel({
               )}
             </div>
           )}
+          {sendError !== null && (
+            <div className="border-t border-border bg-card px-3 py-1.5 text-[12px] text-primary">
+              {sendError}
+            </div>
+          )}
           <div className="flex items-stretch gap-px border-t border-border bg-border">
             <button
               type="button"
               aria-label="Emoji picker"
               onClick={() => setPickerOpen((o) => !o)}
-              className="flex items-center bg-card px-3 text-lg text-foreground"
+              className="flex cursor-pointer items-center bg-card px-3 text-lg text-foreground"
             >
               ☺
             </button>

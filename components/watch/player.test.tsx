@@ -65,6 +65,11 @@ describe("Player", () => {
     expect(screen.getByText(/STREAM RESUMES SOON/)).toBeInTheDocument();
   });
 
+  it("off-air: hides the control bar (nothing to control)", () => {
+    render(<Player live={false} />);
+    expect(screen.queryByTestId("player-controls")).toBeNull();
+  });
+
   it("live: attaches the HLS proxy playlist to the video via hls.js", async () => {
     render(<Player live />);
     await waitFor(() => expect(loadSource).toHaveBeenCalledWith(LIVE_PROXY_PATH));

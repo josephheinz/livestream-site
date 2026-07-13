@@ -5,8 +5,6 @@ import { MotionConfig } from 'motion/react';
 import { ClerkProvider } from '@clerk/nextjs';
 import { shadcn } from '@clerk/ui/themes';
 import ConvexClientProvider from '@/components/ConvexClientProvider';
-import { ThemeProvider } from '@/components/theme/theme-provider';
-import { ThemeScript } from '@/components/theme/theme-script';
 import { AuthModalProvider } from '@/components/site/auth-modal';
 
 const spaceGrotesk = Space_Grotesk({
@@ -38,20 +36,16 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="en" suppressHydrationWarning>
-			<head>
-				<ThemeScript />
-			</head>
+		// Dark-only: light mode removed; the .dark palette is the site's palette.
+		<html lang="en" className="dark">
 			<body className={`${spaceGrotesk.variable} ${spaceMono.variable} ${archivoBlack.variable} antialiased`}>
-				<ThemeProvider>
-					<MotionConfig reducedMotion="user">
-						<ClerkProvider appearance={{ theme: shadcn }}>
-							<ConvexClientProvider>
-								<AuthModalProvider>{children}</AuthModalProvider>
-							</ConvexClientProvider>
-						</ClerkProvider>
-					</MotionConfig>
-				</ThemeProvider>
+				<MotionConfig reducedMotion="user">
+					<ClerkProvider appearance={{ theme: shadcn }}>
+						<ConvexClientProvider>
+							<AuthModalProvider>{children}</AuthModalProvider>
+						</ConvexClientProvider>
+					</ClerkProvider>
+				</MotionConfig>
 			</body>
 		</html>
 	);

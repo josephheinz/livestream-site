@@ -66,6 +66,11 @@ export default defineSchema({
     createdBy: v.id("users"),
   }).index("by_user", ["userId"]),
 
+  // Single-row site settings (admin-editable ticker items).
+  settings: defineTable({
+    tickerItems: v.array(v.string()),
+  }),
+
   presenceSessions: defineTable({
     streamId: v.id("streams"),
     sessionId: v.string(),

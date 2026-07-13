@@ -17,13 +17,14 @@ function formatSlot(ts: number): string {
 }
 
 /**
- * Ticker content derived from backend state only (research D9): the live title
- * while on air, the next scheduled broadcast, or an honest off-air line. The
- * static spec-002 marketing lines are intentionally dropped from real routes.
+ * Ticker content derived from backend state (research D9): the live title
+ * while on air, the next scheduled broadcast, plus the admin-authored lines
+ * from settings.tickerItems (editable on the Dashboard).
  */
 export function tickerItemsFor(
   live: LiveStream | null | undefined,
   upcoming: UpcomingStream[] | undefined,
+  custom?: string[],
 ): TickerItem[] {
   const items: TickerItem[] = [];
   if (live) {
@@ -32,6 +33,9 @@ export function tickerItemsFor(
   const next = upcoming?.[0];
   if (next) {
     items.push({ text: `▶ NEXT BROADCAST ${formatSlot(next.scheduledStart)}` });
+  }
+  for (const text of custom ?? []) {
+    items.push({ text });
   }
   if (items.length === 0) {
     items.push({ text: "● OFF AIR — STREAM RESUMES SOON" });

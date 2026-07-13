@@ -18,6 +18,7 @@ import type * as lib_auth from "../lib/auth.js";
 import type * as lib_bans from "../lib/bans.js";
 import type * as presence from "../presence.js";
 import type * as reactions from "../reactions.js";
+import type * as settings from "../settings.js";
 import type * as streams from "../streams.js";
 import type * as users from "../users.js";
 
@@ -38,6 +39,7 @@ declare const fullApi: ApiFromModules<{
   "lib/bans": typeof lib_bans;
   presence: typeof presence;
   reactions: typeof reactions;
+  settings: typeof settings;
   streams: typeof streams;
   users: typeof users;
 }>;
