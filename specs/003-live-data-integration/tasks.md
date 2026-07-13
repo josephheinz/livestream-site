@@ -30,7 +30,7 @@ rule). Spec-002 visuals are frozen — wiring only (SC-007).
 
 **Purpose**: The one new dependency
 
-- [ ] T001 Add `hls.js` (+ types if needed) via pnpm; confirm `pnpm build` still passes (research D1)
+- [X] T001 Add `hls.js` (+ types if needed) via pnpm; confirm `pnpm build` still passes (research D1)
 
 ---
 
@@ -38,8 +38,8 @@ rule). Spec-002 visuals are frozen — wiring only (SC-007).
 
 **Purpose**: The shared degraded-state strip (FR-019, research D10) both routes mount — build once before stories wire it in
 
-- [ ] T002 jsdom test for the connection-status strip in components/site/connection-status.test.tsx — renders nothing when connected, explicit "connection lost / retrying" strip when the Convex client reports disconnected or initial queries stall past the grace window; run and observe FAIL
-- [ ] T003 Implement components/site/connection-status.tsx making T002 pass (Convex connection state via `useConvex`/connection API; no mock content ever rendered)
+- [X] T002 jsdom test for the connection-status strip in components/site/connection-status.test.tsx — renders nothing when connected, explicit "connection lost / retrying" strip when the Convex client reports disconnected or initial queries stall past the grace window; run and observe FAIL
+- [X] T003 Implement components/site/connection-status.tsx making T002 pass (Convex connection state via `useConvex`/connection API; no mock content ever rendered)
 
 **Checkpoint**: Foundation ready — user stories can begin
 
