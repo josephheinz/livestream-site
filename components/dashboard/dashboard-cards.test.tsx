@@ -1,12 +1,11 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getFunctionName } from "convex/server";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 
 // DashboardBody owns the live queries + go-live mutations (research D7/D8); the
-// StatRow and BroadcastCard stay pure prop-driven components (frozen visuals).
+// StatRow stays a pure prop-driven component (frozen visuals).
 const goLiveMock = vi.fn();
 const endMock = vi.fn();
 const createMock = vi.fn();
@@ -23,7 +22,6 @@ vi.mock("convex/react", () => ({
 }));
 
 import { StatRow, type DashboardStats } from "./stat-row";
-import { BroadcastCard } from "./broadcast-card";
 import { DashboardBody } from "./dashboard-body";
 
 const STATS: DashboardStats = {
@@ -77,21 +75,6 @@ describe("StatRow", () => {
     expect(screen.getByText("1,204")).toBeInTheDocument();
     expect(screen.getByText("1/2")).toBeInTheDocument();
     expect(screen.getByText("3")).toBeInTheDocument();
-  });
-});
-
-describe("BroadcastCard", () => {
-  function Harness() {
-    const [live, setLive] = useState(false);
-    return <BroadcastCard live={live} viewers={1204} onToggle={() => setLive((v) => !v)} />;
-  }
-
-  it("reflects live state and toggles", () => {
-    render(<Harness />);
-    expect(screen.getByText("OFF AIR")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "GO LIVE" }));
-    expect(screen.getByText(/ON AIR/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "GO OFF AIR" })).toBeInTheDocument();
   });
 });
 

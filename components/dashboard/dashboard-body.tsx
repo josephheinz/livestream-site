@@ -6,9 +6,9 @@ import { StatRow } from "./stat-row";
 import { StreamTitleCard } from "./stream-title-card";
 import { TickerCard } from "./ticker-card";
 import { ExternalConnections } from "./external-connections";
-import { BroadcastCard } from "./broadcast-card";
 import { BannedUsers } from "./banned-users";
 import { AnnouncementCard } from "./announcement-card";
+import { AudienceEffectsCard } from "./audience-effects-card";
 
 function formatThousands(n: number): string {
   return n.toLocaleString("en-US");
@@ -71,17 +71,20 @@ export function DashboardBody() {
 
       <StatRow stats={stats} />
 
-      <AnnouncementCard />
+      <div className="grid grid-cols-1 md:grid-cols-2">
+        <AnnouncementCard />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2">
+        <AudienceEffectsCard />
+      </div>
 
       <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 md:items-start">
         <StreamTitleCard />
         <TickerCard />
       </div>
 
-      <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 md:items-start">
-        <ExternalConnections />
-        <BroadcastCard live={isLive} viewers={viewers} onToggle={toggle} />
-      </div>
+      <ExternalConnections />
 
       <BannedUsers />
     </div>
