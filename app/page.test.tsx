@@ -44,6 +44,12 @@ vi.mock("convex/react", () => ({
   useConvexConnectionState: () => ({ isWebSocketConnected: true, hasEverConnected: true }),
 }));
 
+// ChatPanel derives its mode from Clerk (research D5); the page test only needs
+// the signed-out branch.
+vi.mock("@clerk/nextjs", () => ({
+  useAuth: () => ({ isSignedIn: false, isLoaded: true }),
+}));
+
 import Page from "./page";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { AuthModalProvider } from "@/components/site/auth-modal";

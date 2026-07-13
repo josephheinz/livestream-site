@@ -33,15 +33,7 @@ export default function WatchPage() {
           <Player live={isLive} />
           <StreamHeading title={title} live={isLive} />
         </div>
-        {/* ponytail: chat stays read-only signed-out until US2 (T022) wires it to
-            chat.list / chat.send; no placeholder content is rendered here. */}
-        <ChatPanel
-          mode="signedout"
-          messages={[]}
-          ban={{ reason: "", expires: "" }}
-          live={isLive}
-          viewers={viewers}
-        />
+        <ChatPanel streamId={streamId} live={isLive} viewers={viewers} />
       </main>
       <ConnectionStatus />
       <TickerTape items={tickerItemsFor(live, upcoming)} />

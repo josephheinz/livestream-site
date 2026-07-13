@@ -14,6 +14,12 @@ vi.mock("next/link", () => ({
   },
 }));
 
+// Opening the auth modal mounts the Clerk-driven dialog (research D5).
+vi.mock("@clerk/nextjs", () => ({
+  useSignIn: () => ({ isLoaded: true, signIn: { create: vi.fn() }, setActive: vi.fn() }),
+  useSignUp: () => ({ isLoaded: true, signUp: { create: vi.fn() }, setActive: vi.fn() }),
+}));
+
 import { Banner } from "./banner";
 import { AuthModalProvider } from "./auth-modal";
 import { ThemeProvider } from "@/components/theme/theme-provider";

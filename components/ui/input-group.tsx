@@ -11,14 +11,29 @@ export function InputGroup({
   type = "text",
   onSubmit,
   className,
+  value: controlledValue,
+  onChange,
 }: {
   placeholder?: string;
   buttonLabel: string;
   type?: string;
   onSubmit?: (value: string) => void;
   className?: string;
+  // Optional controlled mode: when `value`/`onChange` are supplied the caller
+  // owns the text (e.g. so an emoji picker can insert tokens).
+  value?: string;
+  onChange?: (value: string) => void;
 }) {
-  const [value, setValue] = React.useState("");
+  const [internal, setInternal] = React.useState("");
+  const isControlled = controlledValue !== undefined;
+  const value = isControlled ? controlledValue : internal;
+  const setValue = (next: string) => {
+    if (isControlled) {
+      onChange?.(next);
+    } else {
+      setInternal(next);
+    }
+  };
   const submit = () => {
     onSubmit?.(value);
     setValue("");

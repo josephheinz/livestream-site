@@ -9,6 +9,9 @@ import type { Id } from "@/convex/_generated/dataModel";
 const authState = { isSignedIn: false as boolean | undefined };
 vi.mock("@clerk/nextjs", () => ({
   useAuth: () => ({ isSignedIn: authState.isSignedIn, isLoaded: true }),
+  // The sign-in prompt can open the Clerk-driven auth dialog.
+  useSignIn: () => ({ isLoaded: true, signIn: { create: vi.fn() }, setActive: vi.fn() }),
+  useSignUp: () => ({ isLoaded: true, signUp: { create: vi.fn() }, setActive: vi.fn() }),
 }));
 
 const sendMock = vi.fn();
