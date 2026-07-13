@@ -45,11 +45,11 @@ export default function RootLayout({
 			<body className={`${spaceGrotesk.variable} ${spaceMono.variable} ${archivoBlack.variable} antialiased`}>
 				<ThemeProvider>
 					<MotionConfig reducedMotion="user">
-						<AuthModalProvider>
-							<ClerkProvider appearance={{ theme: shadcn }}>
-								<ConvexClientProvider>{children}</ConvexClientProvider>
-							</ClerkProvider>
-						</AuthModalProvider>
+						<ClerkProvider appearance={{ theme: shadcn }}>
+							<ConvexClientProvider>
+								<AuthModalProvider>{children}</AuthModalProvider>
+							</ConvexClientProvider>
+						</ClerkProvider>
 					</MotionConfig>
 				</ThemeProvider>
 			</body>
