@@ -1,8 +1,10 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { requireAdmin } from "./lib/auth";
 
 const MAX_ANNOUNCEMENT_LENGTH = 280;
+const audienceEffect = v.union(v.literal("confetti"), v.literal("imageRain"));
 
 // ponytail: single settings row; add a key column if settings ever multiply.
 export const get = query({
@@ -44,6 +46,31 @@ export const sendAnnouncement = mutation({
     } else {
       await ctx.db.insert("settings", { tickerItems: [], announcement });
     }
+    return null;
+  },
+});
+
+export const triggerAudienceEffect = mutation({
+  args: { kind: audienceEffect },
+  handler: async (ctx, { kind }) => {
+    await requireAdmin(ctx);
+    const effectId = await ctx.db.insert("audienceEffects", { kind, sentAt: Date.now() });
+    await ctx.scheduler.runAfter(10_000, internal.settings.removeAudienceEffect, { effectId });
+    return null;
+  },
+});
+
+export const listAudienceEffects = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("audienceEffects").order("desc").take(100);
+  },
+});
+
+export const removeAudienceEffect = internalMutation({
+  args: { effectId: v.id("audienceEffects") },
+  handler: async (ctx, { effectId }) => {
+    await ctx.db.delete(effectId);
     return null;
   },
 });

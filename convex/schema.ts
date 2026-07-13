@@ -75,6 +75,17 @@ export default defineSchema({
         sentAt: v.number(),
       }),
     ),
+    audienceEffect: v.optional(
+      v.object({
+        kind: v.union(v.literal("confetti"), v.literal("imageRain")),
+        sentAt: v.number(),
+      }),
+    ),
+  }),
+
+  audienceEffects: defineTable({
+    kind: v.union(v.literal("confetti"), v.literal("imageRain")),
+    sentAt: v.number(),
   }),
 
   presenceSessions: defineTable({

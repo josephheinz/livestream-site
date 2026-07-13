@@ -73,3 +73,20 @@ test("sendAnnouncement rejects empty and oversized messages", async () => {
     admin.mutation(api.settings.sendAnnouncement, { message: "x".repeat(281) }),
   ).rejects.toThrow("280 characters or fewer");
 });
+
+test("triggerAudienceEffect is admin-only and queues every effect", async () => {
+  const t = setup();
+  const admin = await asAdmin(t);
+  const viewer = await asUser(t);
+
+  await expect(
+    viewer.mutation(api.settings.triggerAudienceEffect, { kind: "confetti" }),
+  ).rejects.toThrow("Admin only");
+
+  await admin.mutation(api.settings.triggerAudienceEffect, { kind: "confetti" });
+  await admin.mutation(api.settings.triggerAudienceEffect, { kind: "imageRain" });
+  expect((await t.query(api.settings.listAudienceEffects)).map((effect) => effect.kind)).toEqual([
+    "imageRain",
+    "confetti",
+  ]);
+});
