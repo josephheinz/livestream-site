@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { requireUser } from "./lib/auth";
+import { isBanned } from "./lib/bans";
 
 const RECENT_WINDOW_MS = 30_000;
 const MAX_EMOJI_CHARS = 16;
@@ -26,6 +27,9 @@ export const send = mutation({
   args: { streamId: v.id("streams"), kind: v.string() },
   handler: async (ctx, { streamId, kind }) => {
     const user = await requireUser(ctx);
+    if (await isBanned(ctx, user._id)) {
+      throw new Error("You are banned from chat");
+    }
     const stream = await ctx.db.get(streamId);
     if (stream === null || stream.status !== "live") {
       throw new Error("Reactions are only open while the stream is live");

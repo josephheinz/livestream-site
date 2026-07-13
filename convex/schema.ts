@@ -59,6 +59,13 @@ export default defineSchema({
     .index("by_stream", ["streamId"])
     .index("by_user", ["userId"]),
 
+  bans: defineTable({
+    userId: v.id("users"),
+    reason: v.string(),
+    expiresAt: v.optional(v.number()),
+    createdBy: v.id("users"),
+  }).index("by_user", ["userId"]),
+
   presenceSessions: defineTable({
     streamId: v.id("streams"),
     sessionId: v.string(),

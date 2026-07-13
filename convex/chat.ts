@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { requireAdmin, requireUser } from "./lib/auth";
+import { isBanned } from "./lib/bans";
 
 const MAX_BODY_CHARS = 500;
 const RATE_LIMIT_MS = 2_000;
@@ -51,6 +52,9 @@ export const send = mutation({
   args: { streamId: v.id("streams"), body: v.string() },
   handler: async (ctx, { streamId, body }) => {
     const user = await requireUser(ctx);
+    if (await isBanned(ctx, user._id)) {
+      throw new Error("You are banned from chat");
+    }
     const trimmed = body.trim();
     if (trimmed.length === 0) {
       throw new Error("Message is empty");

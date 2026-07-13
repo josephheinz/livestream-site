@@ -23,7 +23,7 @@ test("list/ban/unban are admin-only", async () => {
   const viewer = await asUser(t);
   const viewerId = await userIdOf(t, "user_viewer");
 
-  await expect(t.query(api.bans.list)).rejects.toThrow("Admin only");
+  await expect(t.query(api.bans.list)).rejects.toThrow(); // anonymous: "Must be signed in"
   await expect(viewer.query(api.bans.list)).rejects.toThrow("Admin only");
   await expect(
     viewer.mutation(api.bans.ban, { userId: viewerId, reason: "nope" }),

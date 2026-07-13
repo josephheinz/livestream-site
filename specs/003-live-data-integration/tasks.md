@@ -86,9 +86,9 @@ rule). Spec-002 visuals are frozen — wiring only (SC-007).
 
 ### Implementation for User Story 2
 
-- [ ] T018 [US2] Add `bans` table to convex/schema.ts (userId, reason, expiresAt?, createdBy; index by_user — data-model.md)
-- [ ] T019 [US2] Implement convex/lib/bans.ts `isBanned` helper + convex/bans.ts (`list`/`ban`/`unban` with `requireAdmin`) making T013 pass
-- [ ] T020 [US2] Add the ban guard to `chat.send` in convex/chat.ts and `reactions.send` in convex/reactions.ts making T014 pass (exact error string per contract)
+- [X] T018 [US2] Add `bans` table to convex/schema.ts (userId, reason, expiresAt?, createdBy; index by_user — data-model.md)
+- [X] T019 [US2] Implement convex/lib/bans.ts `isBanned` helper + convex/bans.ts (`list`/`ban`/`unban` with `requireAdmin`) making T013 pass
+- [X] T020 [US2] Add the ban guard to `chat.send` in convex/chat.ts and `reactions.send` in convex/reactions.ts making T014 pass (exact error string per contract)
 - [ ] T021 [P] [US2] Wire components/site/auth-modal.tsx to Clerk sign-in/sign-up making T016 pass
 - [ ] T022 [US2] Wire components/watch/chat-panel.tsx — `chat.list` live tail, composer → `chat.send`, emoji picker from `emojis.list` inserting `:name:`, token renderer, mode from Clerk + ban-error handling, viewers from `presence.count` — making T015 pass
 
