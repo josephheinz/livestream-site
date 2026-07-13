@@ -2,16 +2,27 @@
 
 import { PulseSquare } from "@/components/motion/motion-primitives";
 import { TitledCard } from "@/components/ui/titled-card";
-import { formatThousands, stream } from "@/lib/mock-data";
 
-export function BroadcastCard({ live, onToggle }: { live: boolean; onToggle: () => void }) {
+function formatThousands(n: number): string {
+  return n.toLocaleString("en-US");
+}
+
+export function BroadcastCard({
+  live,
+  viewers,
+  onToggle,
+}: {
+  live: boolean;
+  viewers: number;
+  onToggle: () => void;
+}) {
   return (
     <TitledCard title="Broadcast" contentClassName="flex flex-wrap items-center gap-3.5 p-4">
       <div className="flex items-center gap-2.5 font-mono text-[14px] font-bold">
         {live ? (
           <>
             <PulseSquare size={12} />
-            <span>ON AIR — {formatThousands(stream.viewers)} watching</span>
+            <span>ON AIR — {formatThousands(viewers)} watching</span>
           </>
         ) : (
           <>

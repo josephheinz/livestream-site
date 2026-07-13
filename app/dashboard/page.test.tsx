@@ -59,8 +59,10 @@ describe("Dashboard route (/dashboard)", () => {
   it("admin sees the dashboard with real stats and the banned table (FR-002)", () => {
     mockData({ me: { role: "admin" } });
     renderDash();
-    expect(screen.getByText("Dashboard")).toBeInTheDocument();
+    expect(screen.getByText("RESTRICTED — BROADCAST CONTROLS")).toBeInTheDocument();
     expect(screen.getAllByTestId("stat-bar")).toHaveLength(4);
+    expect(screen.getByText("Banned Users")).toBeInTheDocument();
+    expect(screen.queryByText(/Access Denied/i)).toBeNull();
   });
 
   it("non-admin gets the denied state with no admin data (FR-002)", () => {
@@ -68,7 +70,7 @@ describe("Dashboard route (/dashboard)", () => {
     renderDash();
     expect(screen.getByText(/Access Denied/i)).toBeInTheDocument();
     expect(screen.queryAllByTestId("stat-bar")).toHaveLength(0);
-    expect(screen.queryByText("Dashboard")).toBeNull();
+    expect(screen.queryByText("Banned Users")).toBeNull();
   });
 
   it("signed-out visitor gets the denied state with no admin data (FR-002)", () => {

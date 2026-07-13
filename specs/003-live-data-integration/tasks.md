@@ -112,10 +112,10 @@ rule). Spec-002 visuals are frozen — wiring only (SC-007).
 
 ### Implementation for User Story 3
 
-- [ ] T028 [US3] Gate app/dashboard/page.tsx on `users.me` role, render denied state otherwise; mount connection-status strip; remove mock-data imports and demo params
-- [ ] T029 [US3] Wire components/dashboard/dashboard-body.tsx + broadcast-card.tsx — live stats per D7, go-live control → `streams.goLive`/`end` with `streams.create` fallback (D8); components/dashboard/external-connections.tsx honest empty state
-- [ ] T030 [P] [US3] Wire components/dashboard/banned-users.tsx to `bans.list`/`ban`/`unban` making T025 pass
-- [ ] T031 [US3] Wire components/stream-title.tsx + components/dashboard/stream-title-card.tsx to `streams.update` with admin-only editing making T026 pass
+- [X] T028 [US3] Gate app/dashboard/page.tsx on `users.me` role, render denied state otherwise; mount connection-status strip; remove mock-data imports and demo params
+- [X] T029 [US3] Wire components/dashboard/dashboard-body.tsx + broadcast-card.tsx — live stats per D7, go-live control → `streams.goLive`/`end` with `streams.create` fallback (D8); components/dashboard/external-connections.tsx honest empty state
+- [X] T030 [P] [US3] Wire components/dashboard/banned-users.tsx to `bans.list`/`ban`/`unban` making T025 pass
+- [X] T031 [US3] Wire components/stream-title.tsx + components/dashboard/stream-title-card.tsx to `streams.update` with admin-only editing making T026 pass
 
 **Checkpoint**: All three stories independently functional
 
