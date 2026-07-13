@@ -49,6 +49,28 @@ function AuthDialog({
 
   const title = mode === "signin" ? "SIGN IN" : "CREATE ACCOUNT";
 
+  const oauthGoogle = async () => {
+    setError(null);
+    try {
+      const opts = {
+        strategy: "oauth_google" as const,
+        redirectUrl: "/sso-callback",
+        redirectUrlComplete: "/",
+      };
+      // Sign-up mode goes through signUp so brand-new Google accounts are
+      // created; Clerk transfers to sign-in when the account already exists.
+      if (mode === "signin") {
+        if (!signInLoaded) return;
+        await signIn.authenticateWithRedirect(opts);
+      } else {
+        if (!signUpLoaded) return;
+        await signUp.authenticateWithRedirect(opts);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong");
+    }
+  };
+
   const submit = async () => {
     setError(null);
     setBusy(true);
@@ -166,6 +188,20 @@ function AuthDialog({
             className="w-full border-2 border-border bg-primary py-[11px] text-center font-display text-[13px] text-primary-foreground uppercase shadow-brutal-sm transition-transform hover:-translate-x-px hover:-translate-y-px"
           >
             {title}
+          </button>
+
+          <div className="my-[13px] flex items-center gap-2.5 text-[11px] tracking-[.08em] text-muted-foreground uppercase">
+            <span className="h-px flex-1 bg-border" />
+            or
+            <span className="h-px flex-1 bg-border" />
+          </div>
+
+          <button
+            type="button"
+            onClick={oauthGoogle}
+            className="w-full border-2 border-border bg-card py-[11px] text-center font-display text-[13px] text-foreground uppercase shadow-brutal-sm transition-transform hover:-translate-x-px hover:-translate-y-px"
+          >
+            Continue with Google
           </button>
 
           <div className="mt-[18px] border-t border-border pt-[13px] text-center text-[13px] text-muted-foreground">

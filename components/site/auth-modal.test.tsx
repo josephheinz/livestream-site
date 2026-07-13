@@ -3,10 +3,20 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const signInCreate = vi.fn();
 const signUpCreate = vi.fn();
+const signInOAuth = vi.fn();
+const signUpOAuth = vi.fn();
 const setActive = vi.fn();
 vi.mock("@clerk/nextjs", () => ({
-  useSignIn: () => ({ isLoaded: true, signIn: { create: signInCreate }, setActive }),
-  useSignUp: () => ({ isLoaded: true, signUp: { create: signUpCreate }, setActive }),
+  useSignIn: () => ({
+    isLoaded: true,
+    signIn: { create: signInCreate, authenticateWithRedirect: signInOAuth },
+    setActive,
+  }),
+  useSignUp: () => ({
+    isLoaded: true,
+    signUp: { create: signUpCreate, authenticateWithRedirect: signUpOAuth },
+    setActive,
+  }),
 }));
 
 import { AuthModal } from "./auth-modal";
@@ -14,6 +24,8 @@ import { AuthModal } from "./auth-modal";
 beforeEach(() => {
   signInCreate.mockReset();
   signUpCreate.mockReset();
+  signInOAuth.mockReset();
+  signUpOAuth.mockReset();
   setActive.mockReset();
 });
 afterEach(() => vi.clearAllMocks());
@@ -94,5 +106,31 @@ describe("AuthModal (controlled)", () => {
         username: "cooluser",
       }),
     );
+  });
+
+  it("signin: Google button starts the Clerk OAuth redirect flow", async () => {
+    render(<AuthModal open mode="signin" onClose={() => {}} onSwitchMode={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: /continue with google/i }));
+    await waitFor(() =>
+      expect(signInOAuth).toHaveBeenCalledWith({
+        strategy: "oauth_google",
+        redirectUrl: "/sso-callback",
+        redirectUrlComplete: "/",
+      }),
+    );
+    expect(signUpOAuth).not.toHaveBeenCalled();
+  });
+
+  it("signup: Google button starts the OAuth flow via sign-up", async () => {
+    render(<AuthModal open mode="signup" onClose={() => {}} onSwitchMode={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: /continue with google/i }));
+    await waitFor(() =>
+      expect(signUpOAuth).toHaveBeenCalledWith({
+        strategy: "oauth_google",
+        redirectUrl: "/sso-callback",
+        redirectUrlComplete: "/",
+      }),
+    );
+    expect(signInOAuth).not.toHaveBeenCalled();
   });
 });
