@@ -110,6 +110,34 @@ test("purgeOldReactions cron deletes reactions older than 1h", async () => {
   expect(rows.map((r) => r.kind)).toEqual(["🔥"]);
 });
 
+async function viewerId(t: ReturnType<typeof setup>): Promise<Id<"users">> {
+  return await t.run(async (ctx) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_externalId", (q) => q.eq("externalId", "user_viewer"))
+      .unique();
+    return user!._id;
+  });
+}
+
+test("a banned user's reaction send is rejected with the ban error; unbanning restores it", async () => {
+  const t = setup();
+  const admin = await asAdmin(t);
+  const viewer = await asUser(t);
+  const streamId = await seedLiveStream(admin);
+  const id = await viewerId(t);
+
+  await admin.mutation(api.bans.ban, { userId: id, reason: "spam" });
+  await expect(
+    viewer.mutation(api.reactions.send, { streamId, kind: "🎉" }),
+  ).rejects.toThrow("You are banned from chat");
+
+  await admin.mutation(api.bans.unban, { userId: id });
+  await viewer.mutation(api.reactions.send, { streamId, kind: "🎉" });
+  const recent = await t.query(api.reactions.recent, { streamId });
+  expect(recent).toHaveLength(1);
+});
+
 test("recent returns only trailing-30s reactions", async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   const t = setup();

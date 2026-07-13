@@ -78,11 +78,11 @@ rule). Spec-002 visuals are frozen — wiring only (SC-007).
 
 ### Tests for User Story 2 (MANDATORY — write FIRST, observe FAIL) ⚠️
 
-- [ ] T013 [P] [US2] convex-test suite in convex/__tests__/bans.test.ts — `bans.ban`/`unban`/`list` admin-only (non-admin throws "Admin only"), empty reason rejected, re-ban updates in place, `expiresAt` past = inactive, `list` joins user names (contract convex-functions.md)
-- [ ] T014 [P] [US2] convex-test cases (extend convex/__tests__/chat.test.ts and reactions.test.ts) — banned user's `chat.send`/`reactions.send` throws "You are banned from chat"; unbanned/expired-ban user sends fine
-- [ ] T015 [P] [US2] Update components/watch/chat-panel.test.tsx — mode from mocked Clerk auth (signedout prompt opens auth modal; signedin composer sends via `chat.send`), ban error flips to banned notice (D5), `:name:` tokens render as `<img>` for active emojis and literal text for unknown (D6), messages from mocked `chat.list`, and mid-session auth expiry (auth flips signed-out / send throws "Must be signed in") reverts the composer to the sign-in prompt gracefully (spec edge case)
-- [ ] T016 [P] [US2] Update components/site/auth-modal.test.tsx — modal drives Clerk sign-in/sign-up flows (mocked `@clerk/nextjs`)
-- [ ] T017 [US2] Run the suite; confirm T013–T016 FAIL before implementing
+- [X] T013 [P] [US2] convex-test suite in convex/__tests__/bans.test.ts — `bans.ban`/`unban`/`list` admin-only (non-admin throws "Admin only"), empty reason rejected, re-ban updates in place, `expiresAt` past = inactive, `list` joins user names (contract convex-functions.md)
+- [X] T014 [P] [US2] convex-test cases (extend convex/__tests__/chat.test.ts and reactions.test.ts) — banned user's `chat.send`/`reactions.send` throws "You are banned from chat"; unbanned/expired-ban user sends fine
+- [X] T015 [P] [US2] Update components/watch/chat-panel.test.tsx — mode from mocked Clerk auth (signedout prompt opens auth modal; signedin composer sends via `chat.send`), ban error flips to banned notice (D5), `:name:` tokens render as `<img>` for active emojis and literal text for unknown (D6), messages from mocked `chat.list`, and mid-session auth expiry (auth flips signed-out / send throws "Must be signed in") reverts the composer to the sign-in prompt gracefully (spec edge case)
+- [X] T016 [P] [US2] Update components/site/auth-modal.test.tsx — modal drives Clerk sign-in/sign-up flows (mocked `@clerk/nextjs`)
+- [X] T017 [US2] Run the suite; confirm T013–T016 FAIL before implementing
 
 ### Implementation for User Story 2
 

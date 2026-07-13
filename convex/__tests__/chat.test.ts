@@ -85,6 +85,49 @@ test("body validation: empty and >500 chars rejected", async () => {
   ).rejects.toThrow();
 });
 
+async function viewerId(t: ReturnType<typeof setup>): Promise<Id<"users">> {
+  return await t.run(async (ctx) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_externalId", (q) => q.eq("externalId", "user_viewer"))
+      .unique();
+    return user!._id;
+  });
+}
+
+test("a banned user's send is rejected with the ban error; unbanning restores it", async () => {
+  const t = setup();
+  const admin = await asAdmin(t);
+  const viewer = await asUser(t);
+  const streamId = await seedLiveStream(admin);
+  const id = await viewerId(t);
+
+  await admin.mutation(api.bans.ban, { userId: id, reason: "spam" });
+  await expect(
+    viewer.mutation(api.chat.send, { streamId, body: "hello" }),
+  ).rejects.toThrow("You are banned from chat");
+
+  await admin.mutation(api.bans.unban, { userId: id });
+  await viewer.mutation(api.chat.send, { streamId, body: "hello" });
+  expect(await t.query(api.chat.list, { streamId })).toHaveLength(1);
+});
+
+test("an expired ban does not block sending", async () => {
+  const t = setup();
+  const admin = await asAdmin(t);
+  const viewer = await asUser(t);
+  const streamId = await seedLiveStream(admin);
+  const id = await viewerId(t);
+
+  await admin.mutation(api.bans.ban, {
+    userId: id,
+    reason: "temporary",
+    expiresAt: Date.now() - 1_000,
+  });
+  await viewer.mutation(api.chat.send, { streamId, body: "still allowed" });
+  expect(await t.query(api.chat.list, { streamId })).toHaveLength(1);
+});
+
 test("deleted author lists with the 'Deleted user' fallback (research D11)", async () => {
   const t = setup();
   const admin = await asAdmin(t);
