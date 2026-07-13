@@ -1,5 +1,9 @@
+import { readFileSync } from "node:fs";
 import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { getFunctionName } from "convex/server";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/" }));
 vi.mock("next/link", () => ({
@@ -14,58 +18,96 @@ vi.mock("next/link", () => ({
   },
 }));
 
+// hls.js is exercised by the wired Player; a minimal mock keeps the live branch
+// from touching the real media library under jsdom.
+vi.mock("hls.js", () => {
+  class Hls {
+    static isSupported() {
+      return true;
+    }
+    static Events = { ERROR: "hlsError", MANIFEST_PARSED: "hlsManifestParsed" };
+    static ErrorTypes = { NETWORK_ERROR: "networkError", MEDIA_ERROR: "mediaError", OTHER_ERROR: "otherError" };
+    loadSource = vi.fn();
+    attachMedia = vi.fn();
+    on = vi.fn();
+    startLoad = vi.fn();
+    recoverMediaError = vi.fn();
+    destroy = vi.fn();
+  }
+  return { default: Hls };
+});
+
+const useQuery = vi.fn();
+vi.mock("convex/react", () => ({
+  useQuery: (ref: unknown, args?: unknown) => useQuery(ref, args),
+  useMutation: () => vi.fn(),
+  useConvexConnectionState: () => ({ isWebSocketConnected: true, hasEverConnected: true }),
+}));
+
 import Page from "./page";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { AuthModalProvider } from "@/components/site/auth-modal";
 
-async function renderWatch(params: Record<string, string>) {
-  const ui = await Page({ searchParams: Promise.resolve(params) });
+type Stream = { _id: Id<"streams">; title: string; status: string; scheduledStart: number };
+
+function mockData(opts: { live?: Stream | null; upcoming?: Stream[]; viewers?: number }) {
+  useQuery.mockImplementation((ref: unknown, args?: unknown) => {
+    if (ref == null) return undefined;
+    const name = getFunctionName(ref as never);
+    if (name === getFunctionName(api.streams.getLive)) return opts.live ?? null;
+    if (name === getFunctionName(api.streams.listUpcoming)) return opts.upcoming ?? [];
+    if (name === getFunctionName(api.presence.count)) return args === "skip" ? undefined : (opts.viewers ?? 0);
+    return undefined;
+  });
+}
+
+function renderWatch() {
   return render(
     <ThemeProvider>
-      <AuthModalProvider>{ui}</AuthModalProvider>
+      <AuthModalProvider>
+        <Page />
+      </AuthModalProvider>
     </ThemeProvider>
   );
 }
 
+beforeEach(() => useQuery.mockReset());
+afterEach(() => vi.clearAllMocks());
+
 describe("Watch route (/)", () => {
-  let fetchSpy: ReturnType<typeof vi.fn>;
-  beforeEach(() => {
-    fetchSpy = vi.fn();
-    vi.stubGlobal("fetch", fetchSpy);
-  });
-  afterEach(() => vi.unstubAllGlobals());
-
-  it("?live=1 renders the live player", async () => {
-    await renderWatch({ live: "1" });
+  it("live stream: renders the player, the real title, and the viewer count", () => {
+    mockData({
+      live: { _id: "s1" as Id<"streams">, title: "REAL BROADCAST TITLE", status: "live", scheduledStart: 0 },
+      viewers: 1204,
+    });
+    renderWatch();
     expect(screen.getByText("REC")).toBeInTheDocument();
+    expect(screen.getByRole("heading").textContent).toContain("REAL BROADCAST TITLE");
+    expect(screen.getByTestId("banner-live").textContent).toMatch(/1,204 WATCHING/);
   });
 
-  it("default (no params) renders off-air + signed-out chat", async () => {
-    await renderWatch({});
+  it("no live stream: renders off-air with the next slot from upcoming", () => {
+    mockData({
+      live: null,
+      upcoming: [
+        { _id: "s2" as Id<"streams">, title: "UPCOMING SHOW", status: "scheduled", scheduledStart: Date.UTC(2026, 6, 20, 1, 0) },
+      ],
+    });
+    renderWatch();
     expect(screen.getAllByText("OFF AIR").length).toBeGreaterThan(0);
-    expect(screen.getByText("Sign in to chat")).toBeInTheDocument();
+    expect(screen.getByRole("heading").textContent).toContain("UPCOMING SHOW");
   });
 
-  it("?chat=banned renders the ban notice, no composer", async () => {
-    await renderWatch({ chat: "banned" });
-    expect(screen.getByText(/Repeated off-topic flooding/)).toBeInTheDocument();
-    expect(screen.queryByPlaceholderText("Say something...")).toBeNull();
+  it("no query-param state forcing: the page reads no searchParams", () => {
+    // FR-006: the route no longer accepts searchParams to force live/chat state.
+    expect(Page.length).toBe(0);
+    mockData({ live: null, upcoming: [] });
+    renderWatch();
+    expect(screen.getAllByText("OFF AIR").length).toBeGreaterThan(0);
   });
 
-  it("unknown chat value falls back to signed-out", async () => {
-    await renderWatch({ chat: "bogus" });
-    expect(screen.getByText("Sign in to chat")).toBeInTheDocument();
-  });
-
-  it("renders the stream title below the player", async () => {
-    await renderWatch({ live: "1" });
-    const controls = screen.getByTestId("player-controls");
-    const heading = screen.getByRole("heading");
-    expect(controls.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  });
-
-  it("issues no network request (SC-005)", async () => {
-    await renderWatch({});
-    expect(fetchSpy).not.toHaveBeenCalled();
+  it("imports no placeholder mock-data (SC-005)", () => {
+    const source = readFileSync("app/page.tsx", "utf8");
+    expect(source).not.toMatch(/lib\/mock-data/);
   });
 });

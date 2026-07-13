@@ -1,7 +1,43 @@
 "use client";
 
 import { Ticker } from "@/components/motion/motion-primitives";
-import type { TickerItem } from "@/lib/mock-data";
+
+export type TickerItem = { text: string; tone?: "primary" | "green" };
+
+// Minimal shapes the ticker derives from — structurally the stream docs.
+type LiveStream = { title: string };
+type UpcomingStream = { title: string; scheduledStart: number };
+
+function formatSlot(ts: number): string {
+  return new Date(ts).toLocaleString("en-US", {
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+/**
+ * Ticker content derived from backend state only (research D9): the live title
+ * while on air, the next scheduled broadcast, or an honest off-air line. The
+ * static spec-002 marketing lines are intentionally dropped from real routes.
+ */
+export function tickerItemsFor(
+  live: LiveStream | null | undefined,
+  upcoming: UpcomingStream[] | undefined,
+): TickerItem[] {
+  const items: TickerItem[] = [];
+  if (live) {
+    items.push({ text: `● ON AIR — ${live.title}`, tone: "primary" });
+  }
+  const next = upcoming?.[0];
+  if (next) {
+    items.push({ text: `▶ NEXT BROADCAST ${formatSlot(next.scheduledStart)}` });
+  }
+  if (items.length === 0) {
+    items.push({ text: "● OFF AIR — STREAM RESUMES SOON" });
+  }
+  return items;
+}
 
 export function TickerTape({ items }: { items: TickerItem[] }) {
   const row = (dup: string) =>

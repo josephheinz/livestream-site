@@ -18,11 +18,11 @@ import { Banner } from "./banner";
 import { AuthModalProvider } from "./auth-modal";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 
-function renderBanner(live: boolean) {
+function renderBanner(live: boolean, viewers?: number) {
   return render(
     <ThemeProvider>
       <AuthModalProvider>
-        <Banner live={live} />
+        <Banner live={live} viewers={viewers} />
       </AuthModalProvider>
     </ThemeProvider>
   );
@@ -35,12 +35,17 @@ describe("Banner", () => {
     expect(screen.getByRole("link", { name: "Dashboard" })).toHaveAttribute("data-active", "false");
   });
 
-  it("reflects the live prop", () => {
+  it("reflects the live state", () => {
     const { unmount } = renderBanner(false);
     expect(screen.getByTestId("banner-live").textContent).toMatch(/OFF AIR/);
     unmount();
     renderBanner(true);
     expect(screen.getByTestId("banner-live").textContent).toMatch(/LIVE/);
+  });
+
+  it("shows the real viewer count in the live badge", () => {
+    renderBanner(true, 1204);
+    expect(screen.getByTestId("banner-live").textContent).toMatch(/1,204 WATCHING/);
   });
 
   it("Sign In opens the auth modal", () => {

@@ -53,18 +53,18 @@ rule). Spec-002 visuals are frozen — wiring only (SC-007).
 
 ### Tests for User Story 1 (MANDATORY — write FIRST, observe FAIL) ⚠️
 
-- [ ] T004 [P] [US1] Unit test for the presence hook in lib/presence.test.ts — per-tab sessionId, `presence.heartbeat` on mount + ~20 s interval, `presence.leave` on unmount/pagehide (mutations mocked)
-- [ ] T005 [P] [US1] Update components/watch/player.test.tsx — live mode attaches HLS source to `/stream/live.m3u8` (hls.js mocked; native-HLS fallback branch), off-air mode renders existing off-air visual, transient error triggers recovery path (FR-004)
-- [ ] T006 [P] [US1] Update components/site/banner tests + add ticker coverage in components/site/ticker-tape.test.tsx — live dot from stream state prop/query, ticker items derived from live/upcoming data only (no static marketing lines, D9)
-- [ ] T007 [P] [US1] Update app/page.test.tsx — with mocked queries: live stream → player + real title + viewer count rendered; no live stream → off-air with next-slot from upcoming; `?live=1`/`?chat=` no longer force state (FR-006); no mock-data imports
-- [ ] T008 [US1] Run the suite; confirm T004–T007 FAIL before implementing
+- [X] T004 [P] [US1] Unit test for the presence hook in lib/presence.test.ts — per-tab sessionId, `presence.heartbeat` on mount + ~20 s interval, `presence.leave` on unmount/pagehide (mutations mocked)
+- [X] T005 [P] [US1] Update components/watch/player.test.tsx — live mode attaches HLS source to `/stream/live.m3u8` (hls.js mocked; native-HLS fallback branch), off-air mode renders existing off-air visual, transient error triggers recovery path (FR-004)
+- [X] T006 [P] [US1] Update components/site/banner tests + add ticker coverage in components/site/ticker-tape.test.tsx — live dot from stream state prop/query, ticker items derived from live/upcoming data only (no static marketing lines, D9)
+- [X] T007 [P] [US1] Update app/page.test.tsx — with mocked queries: live stream → player + real title + viewer count rendered; no live stream → off-air with next-slot from upcoming; `?live=1`/`?chat=` no longer force state (FR-006); no mock-data imports
+- [X] T008 [US1] Run the suite; confirm T004–T007 FAIL before implementing
 
 ### Implementation for User Story 1
 
-- [ ] T009 [P] [US1] Implement lib/presence.ts hook making T004 pass (sessionStorage UUID, visibility-aware interval, leave on pagehide; research D4)
-- [ ] T010 [P] [US1] Wire components/watch/player.tsx — lazy-load hls.js, play `LIVE_PROXY_PATH` when live, native fallback, retry/recovery on transient errors (D1)
-- [ ] T011 [US1] Wire shared chrome: components/site/banner.tsx live dot + components/site/ticker-tape.tsx dynamic items from `streams.getLive`/`listUpcoming` (D9); components/watch/stream-heading.tsx shows the bound stream's real title/status (D3)
-- [ ] T012 [US1] Rewire app/page.tsx — client data via `useQuery(api.streams.getLive)` + `listUpcoming` fallback (D3), mount presence hook + connection-status strip, pass real viewer count from `presence.count`, delete searchParams forcing and all lib/mock-data.ts imports
+- [X] T009 [P] [US1] Implement lib/presence.ts hook making T004 pass (sessionStorage UUID, visibility-aware interval, leave on pagehide; research D4)
+- [X] T010 [P] [US1] Wire components/watch/player.tsx — lazy-load hls.js, play `LIVE_PROXY_PATH` when live, native fallback, retry/recovery on transient errors (D1)
+- [X] T011 [US1] Wire shared chrome: components/site/banner.tsx live dot + components/site/ticker-tape.tsx dynamic items from `streams.getLive`/`listUpcoming` (D9); components/watch/stream-heading.tsx shows the bound stream's real title/status (D3)
+- [X] T012 [US1] Rewire app/page.tsx — client data via `useQuery(api.streams.getLive)` + `listUpcoming` fallback (D3), mount presence hook + connection-status strip, pass real viewer count from `presence.count`, delete searchParams forcing and all lib/mock-data.ts imports
 
 **Checkpoint**: `/` is a working livestream viewer — MVP demonstrable
 

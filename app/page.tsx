@@ -1,42 +1,50 @@
+"use client";
+
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { Banner } from "@/components/site/banner";
-import { TickerTape } from "@/components/site/ticker-tape";
+import { TickerTape, tickerItemsFor } from "@/components/site/ticker-tape";
+import { ConnectionStatus } from "@/components/site/connection-status";
 import { Footer } from "@/components/site/footer";
 import { Player } from "@/components/watch/player";
 import { StreamHeading } from "@/components/watch/stream-heading";
-import { ChatPanel, type ChatMode } from "@/components/watch/chat-panel";
-import { chatMessages, banNotice, tickerItems, stream } from "@/lib/mock-data";
+import { ChatPanel } from "@/components/watch/chat-panel";
+import { usePresence } from "@/lib/presence";
 
-function parseChat(v: string | string[] | undefined): ChatMode {
-  const s = Array.isArray(v) ? v[0] : v;
-  return s === "signedin" || s === "banned" ? s : "signedout";
-}
+// Off-air fallback when no stream is live or scheduled (research D3).
+const CHANNEL_NAME = "Joseph Heinz";
 
-export default async function WatchPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const sp = await searchParams;
-  const live = (Array.isArray(sp.live) ? sp.live[0] : sp.live) === "1";
-  const chat = parseChat(sp.chat);
+export default function WatchPage() {
+  const live = useQuery(api.streams.getLive);
+  const upcoming = useQuery(api.streams.listUpcoming);
+  const streamId = live?._id;
+  const viewers = useQuery(api.presence.count, streamId ? { streamId } : "skip") ?? 0;
+  usePresence(streamId);
+
+  const isLive = live != null;
+  const boundStream = live ?? upcoming?.[0] ?? null;
+  const title = boundStream?.title ?? CHANNEL_NAME;
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
-      <Banner live={live} />
+      <Banner live={isLive} viewers={viewers} />
       <main className="grid min-h-0 flex-1 grid-cols-1 gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_380px] lg:grid-rows-1">
         <div className="flex min-h-0 min-w-0 flex-col gap-4">
-          <Player live={live} />
-          <StreamHeading live={live} />
+          <Player live={isLive} />
+          <StreamHeading title={title} live={isLive} />
         </div>
+        {/* ponytail: chat stays read-only signed-out until US2 (T022) wires it to
+            chat.list / chat.send; no placeholder content is rendered here. */}
         <ChatPanel
-          mode={chat}
-          messages={chatMessages}
-          ban={banNotice}
-          live={live}
-          viewers={stream.viewers}
+          mode="signedout"
+          messages={[]}
+          ban={{ reason: "", expires: "" }}
+          live={isLive}
+          viewers={viewers}
         />
       </main>
-      <TickerTape items={tickerItems} />
+      <ConnectionStatus />
+      <TickerTape items={tickerItemsFor(live, upcoming)} />
       <Footer />
     </div>
   );

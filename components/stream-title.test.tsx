@@ -8,28 +8,26 @@ const KEY = "nightchannel-stream-title";
 beforeEach(() => localStorage.clear());
 
 describe("StreamHeading", () => {
-  it("renders the default stream title as a heading", () => {
-    render(<StreamHeading live={false} />);
+  // US1 (T011): the heading now renders the bound stream's title from a prop
+  // (research D3) rather than the localStorage/mock value. Visual is unchanged.
+  it("renders the bound stream title as a heading", () => {
+    render(<StreamHeading title="CHANNEL 01 — MAIN FEED" live={false} />);
     expect(screen.getByRole("heading")).toHaveTextContent("CHANNEL 01 — MAIN FEED");
   });
 
-  it("prefers a title saved in localStorage", () => {
-    localStorage.setItem(KEY, "LATE NIGHT TAPES");
-    render(<StreamHeading live />);
+  it("shows whatever bound title it is given", () => {
+    render(<StreamHeading title="LATE NIGHT TAPES" live />);
     expect(screen.getByRole("heading")).toHaveTextContent("LATE NIGHT TAPES");
   });
 });
 
 describe("StreamTitleCard (dashboard editor)", () => {
-  it("persists edits to localStorage so the Watch heading picks them up", () => {
+  // Still the spec-002 localStorage editor — US3 (T031) rewires it to streams.update.
+  it("persists edits to localStorage", () => {
     render(<StreamTitleCard />);
     fireEvent.change(screen.getByLabelText("Stream title"), {
       target: { value: "GRAVEYARD SHIFT" },
     });
     expect(localStorage.getItem(KEY)).toBe("GRAVEYARD SHIFT");
-
-    // A freshly mounted Watch heading reads the saved value.
-    render(<StreamHeading live={false} />);
-    expect(screen.getByRole("heading")).toHaveTextContent("GRAVEYARD SHIFT");
   });
 });

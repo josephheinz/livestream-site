@@ -5,15 +5,17 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Blink } from "@/components/motion/motion-primitives";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
-import { stream, formatThousands } from "@/lib/mock-data";
 import { useAuthModal } from "./auth-modal";
+
+// Single-channel site brand (there is no backend channel entity — research D3).
+const CHANNEL_NAME = "Joseph Heinz";
 
 const navBase =
   "cursor-pointer border-2 border-[#57524a] px-[13px] py-[7px] font-sans text-[13px] font-bold uppercase tracking-[.05em] transition-transform hover:-translate-x-px hover:-translate-y-px";
 const chromeBtn =
   "cursor-pointer border-2 border-[#57524a] px-[13px] py-[7px] font-sans text-[13px] font-bold uppercase tracking-[.04em] shadow-[2px_2px_0_rgba(0,0,0,.25)] transition-transform hover:-translate-x-px hover:-translate-y-px";
 
-export function Banner({ live }: { live: boolean }) {
+export function Banner({ live, viewers = 0 }: { live: boolean; viewers?: number }) {
   const pathname = usePathname();
   const { open } = useAuthModal();
 
@@ -42,7 +44,7 @@ export function Banner({ live }: { live: boolean }) {
             borderBottom: "19px solid var(--green)",
           }}
         />
-        <span className="font-display text-[19px] text-bar-ink uppercase">{stream.channelName}</span>
+        <span className="font-display text-[19px] text-bar-ink uppercase">{CHANNEL_NAME}</span>
       </Link>
 
       <nav className="ml-1.5 flex items-center gap-2">
@@ -58,7 +60,7 @@ export function Banner({ live }: { live: boolean }) {
       >
         {live ? (
           <span className="text-primary">
-            <Blink>● LIVE — {formatThousands(stream.viewers)} WATCHING</Blink>
+            <Blink>● LIVE — {viewers.toLocaleString("en-US")} WATCHING</Blink>
           </span>
         ) : (
           <span className="text-bar-muted">OFF AIR</span>
