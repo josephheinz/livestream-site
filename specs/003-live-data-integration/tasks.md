@@ -123,8 +123,8 @@ rule). Spec-002 visuals are frozen — wiring only (SC-007).
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T032 Shrink lib/mock-data.ts to only what app/design-system/page.tsx imports; grep-verify no `mock-data` import remains under app/page.tsx, app/dashboard/, or wired components (SC-005/FR-018)
-- [ ] T033 Full verification: `pnpm test` (all 001/002/003 suites green — SC-007), `pnpm lint`, `pnpm build`
+- [X] T032 Shrink lib/mock-data.ts to only what app/design-system/page.tsx imports; grep-verify no `mock-data` import remains under app/page.tsx, app/dashboard/, or wired components (SC-005/FR-018)
+- [X] T033 Full verification: `pnpm test` (all 001/002/003 suites green — SC-007), `pnpm lint`, `pnpm build`
 - [ ] T034 Execute the manual two-browser validation in specs/003-live-data-integration/quickstart.md — **requires a human + RTMP origin for the playback steps**
 
 ---
