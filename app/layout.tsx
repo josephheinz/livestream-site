@@ -6,6 +6,7 @@ import { ClerkProvider } from '@clerk/nextjs';
 import { shadcn } from '@clerk/ui/themes';
 import ConvexClientProvider from '@/components/ConvexClientProvider';
 import { AuthModalProvider } from '@/components/site/auth-modal';
+import { AnnouncementModal } from '@/components/site/announcement-modal';
 
 const spaceGrotesk = Space_Grotesk({
 	variable: '--font-space-grotesk',
@@ -43,6 +44,7 @@ export default function RootLayout({
 					<ClerkProvider appearance={{ theme: shadcn }}>
 						<ConvexClientProvider>
 							<AuthModalProvider>{children}</AuthModalProvider>
+							<AnnouncementModal />
 						</ConvexClientProvider>
 					</ClerkProvider>
 				</MotionConfig>

@@ -8,6 +8,7 @@ import { TickerCard } from "./ticker-card";
 import { ExternalConnections } from "./external-connections";
 import { BroadcastCard } from "./broadcast-card";
 import { BannedUsers } from "./banned-users";
+import { AnnouncementCard } from "./announcement-card";
 
 function formatThousands(n: number): string {
   return n.toLocaleString("en-US");
@@ -69,6 +70,8 @@ export function DashboardBody() {
       </div>
 
       <StatRow stats={stats} />
+
+      <AnnouncementCard />
 
       <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 md:items-start">
         <StreamTitleCard />

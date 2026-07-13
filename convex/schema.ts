@@ -66,9 +66,15 @@ export default defineSchema({
     createdBy: v.id("users"),
   }).index("by_user", ["userId"]),
 
-  // Single-row site settings (admin-editable ticker items).
+  // Single-row site settings.
   settings: defineTable({
     tickerItems: v.array(v.string()),
+    announcement: v.optional(
+      v.object({
+        message: v.string(),
+        sentAt: v.number(),
+      }),
+    ),
   }),
 
   presenceSessions: defineTable({
@@ -78,6 +84,7 @@ export default defineSchema({
     lastSeen: v.number(),
   })
     .index("by_stream_and_lastSeen", ["streamId", "lastSeen"])
+    .index("by_streamId_and_userId", ["streamId", "userId"])
     .index("by_lastSeen", ["lastSeen"])
     .index("by_session", ["streamId", "sessionId"]),
 });

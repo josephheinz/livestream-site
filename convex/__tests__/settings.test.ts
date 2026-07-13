@@ -48,3 +48,28 @@ test("setTickerItems overwrites in place and drops blank lines", async () => {
   const count = await t.run(async (ctx) => (await ctx.db.query("settings").collect()).length);
   expect(count).toBe(1);
 });
+
+test("sendAnnouncement is admin-only and publishes trimmed text", async () => {
+  const t = setup();
+  const admin = await asAdmin(t);
+  const viewer = await asUser(t);
+
+  await expect(
+    viewer.mutation(api.settings.sendAnnouncement, { message: "Nope" }),
+  ).rejects.toThrow("Admin only");
+
+  await admin.mutation(api.settings.sendAnnouncement, { message: "  Stream starts now!  " });
+  expect((await t.query(api.settings.get))?.announcement?.message).toBe("Stream starts now!");
+});
+
+test("sendAnnouncement rejects empty and oversized messages", async () => {
+  const t = setup();
+  const admin = await asAdmin(t);
+
+  await expect(
+    admin.mutation(api.settings.sendAnnouncement, { message: "   " }),
+  ).rejects.toThrow("Message is required");
+  await expect(
+    admin.mutation(api.settings.sendAnnouncement, { message: "x".repeat(281) }),
+  ).rejects.toThrow("280 characters or fewer");
+});
