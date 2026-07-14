@@ -14,6 +14,11 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Design-brief artifacts, not app code
     "docs/**",
+    // Local dev media server + its HLS output (`.ts` segments are MPEG-TS, not TypeScript)
+    "tools/media-server/**",
+    // Vendored Dice UI registry code — upstream style, not ours
+    "components/ui/media-player.tsx",
+    "lib/compose-refs.ts",
   ]),
 ]);
 
