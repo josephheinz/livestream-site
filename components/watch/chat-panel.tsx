@@ -271,6 +271,17 @@ export function ChatPanel({
   const [authExpired, setAuthExpired] = React.useState(false);
   const [sendError, setSendError] = React.useState<string | null>(null);
 
+  // Keep the scroll pinned to the newest message, but don't yank the user
+  // back down while they're reading history (scrolled up past the threshold).
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const stickToBottom = React.useRef(true);
+  React.useEffect(() => {
+    const el = scrollRef.current;
+    if (el !== null && stickToBottom.current) {
+      el.scrollTop = el.scrollHeight;
+    }
+  }, [messages.length]);
+
   // Bounded (≤200 active emojis); cheap to rebuild each render.
   const emojiUrls = new Map<string, string>();
   for (const emoji of emojis) {
@@ -309,7 +320,7 @@ export function ChatPanel({
   };
 
   return (
-    <div className="flex min-h-[320px] flex-col border-2 border-border bg-card shadow-brutal lg:min-h-0">
+    <div className="flex max-h-[70dvh] min-h-[320px] flex-col border-2 border-border bg-card shadow-brutal lg:max-h-none lg:min-h-0">
       <div className="flex flex-none items-center justify-between bg-bar px-3.5 py-[9px] text-bar-ink">
         <span className="font-display text-[13px] uppercase">Live Chat</span>
         <span className="font-mono text-[11px] text-bar-muted">[{formatThousands(viewers)} ONLINE]</span>
@@ -355,7 +366,15 @@ export function ChatPanel({
           </div>
         </div>
       ) : (
-        <div className="min-h-0 flex-1 overflow-y-auto bg-background px-3.5 py-3">
+        <div
+          ref={scrollRef}
+          onScroll={(e) => {
+            const el = e.currentTarget;
+            stickToBottom.current =
+              el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+          }}
+          className="min-h-0 flex-1 overflow-y-auto bg-background px-3.5 py-3"
+        >
           {messages.map((m, i) => {
             const prev = messages[i - 1];
             const showDay =
