@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import type { Body as MatterBody, Engine as MatterEngine } from "matter-js";
 import { useQuery } from "convex/react";
 import { useReducedMotion } from "motion/react";
 
@@ -27,47 +28,69 @@ function ConfettiBurst() {
   return null;
 }
 
-function ImageRain({ effect, imageUrls }: { effect: Effect; imageUrls: string[] }) {
+function ImageRain({ effects, imageUrls }: { effects: Effect[]; imageUrls: string[] }) {
   const layer = React.useRef<HTMLDivElement>(null);
+  const nodes = React.useRef(new Map<string, HTMLImageElement>());
+  const matter = React.useRef<typeof import("matter-js") | null>(null);
+  const physics = React.useRef<{ engine: MatterEngine; bodies: Map<string, MatterBody> } | null>(null);
+  const effectsRef = React.useRef(effects);
+  const knownEffects = React.useRef(new Set<string>());
+  const fadeTimers = React.useRef(new Map<string, number>());
+  const [fadingEffects, setFadingEffects] = React.useState<Set<string>>(new Set());
+
+  effectsRef.current = effects;
   const images = imageUrls.length > 0 ? imageUrls : ["/favicon.ico"];
-  const [fading, setFading] = React.useState(false);
 
-  React.useEffect(() => {
-    const timeout = window.setTimeout(() => setFading(true), 4300);
-    return () => window.clearTimeout(timeout);
-  }, []);
-
-  React.useEffect(() => {
-    let cancelled = false;
-    let frame = 0;
-    let stop = () => {};
-
-    void import("matter-js").then(({ Bodies, Body, Engine, World }) => {
-      if (cancelled) return;
-      const engine = Engine.create({ gravity: { x: 0, y: 1, scale: 0.001 } });
-      const width = window.innerWidth;
-      const height = window.innerHeight;
-      const bodies = Array.from({ length: 18 }, (_, index) => {
+  const syncPhysics = () => {
+    if (physics.current === null || matter.current === null) return;
+    const { Bodies, Body, World } = matter.current;
+    const activeKeys = new Set<string>();
+    for (const effect of effectsRef.current) {
+      for (let index = 0; index < 18; index++) {
+        const key = `${effect._id}-${index}`;
+        activeKeys.add(key);
+        if (physics.current.bodies.has(key)) continue;
         const seed = effect.sentAt + index * 131;
-        const body = Bodies.rectangle(sample(seed) * width, -40 - index * 28, 40, 40, {
+        const body = Bodies.rectangle(sample(seed) * window.innerWidth, -40 - index * 28, 40, 40, {
           restitution: 0.55,
           friction: 0.02,
           frictionAir: 0.005,
         });
         Body.setVelocity(body, { x: (sample(seed + 1) - 0.5) * 5, y: sample(seed + 2) * 2 });
         Body.setAngularVelocity(body, (sample(seed + 3) - 0.5) * 0.18);
-        return body;
-      });
-      const floor = Bodies.rectangle(width / 2, height + 30, width + 120, 60, { isStatic: true });
-      const leftWall = Bodies.rectangle(-30, height / 2, 60, height * 2, { isStatic: true });
-      const rightWall = Bodies.rectangle(width + 30, height / 2, 60, height * 2, { isStatic: true });
-      World.add(engine.world, [...bodies, floor, leftWall, rightWall]);
+        physics.current.bodies.set(key, body);
+        World.add(physics.current.engine.world, body);
+      }
+    }
+    for (const [key, body] of physics.current.bodies) {
+      if (!activeKeys.has(key)) {
+        World.remove(physics.current.engine.world, body);
+        physics.current.bodies.delete(key);
+        nodes.current.delete(key);
+      }
+    }
+  };
 
-      const nodes = layer.current?.querySelectorAll<HTMLElement>("[data-physics-image]") ?? [];
+  React.useEffect(() => {
+    let cancelled = false;
+    let frame = 0;
+
+    void import("matter-js").then((loadedMatter) => {
+      if (cancelled) return;
+      const { Bodies, Engine, World } = loadedMatter;
+      const engine = Engine.create({ gravity: { x: 0, y: 1, scale: 0.001 } });
+      physics.current = { engine, bodies: new Map() };
+      matter.current = loadedMatter;
+      const floor = Bodies.rectangle(window.innerWidth / 2, window.innerHeight + 30, window.innerWidth + 120, 60, { isStatic: true });
+      const leftWall = Bodies.rectangle(-30, window.innerHeight / 2, 60, window.innerHeight * 2, { isStatic: true });
+      const rightWall = Bodies.rectangle(window.innerWidth + 30, window.innerHeight / 2, 60, window.innerHeight * 2, { isStatic: true });
+      World.add(engine.world, [floor, leftWall, rightWall]);
+      syncPhysics();
+
       const tick = () => {
         Engine.update(engine, 1000 / 60);
-        bodies.forEach((body, index) => {
-          const node = nodes[index];
+        physics.current?.bodies.forEach((body, key) => {
+          const node = nodes.current.get(key);
           if (node) {
             node.style.transform = `translate3d(${body.position.x - 20}px, ${body.position.y - 20}px, 0) rotate(${body.angle}rad)`;
           }
@@ -75,35 +98,60 @@ function ImageRain({ effect, imageUrls }: { effect: Effect; imageUrls: string[] 
         frame = requestAnimationFrame(tick);
       };
       frame = requestAnimationFrame(tick);
-      stop = () => {
-        cancelAnimationFrame(frame);
-        World.clear(engine.world, false);
-        Engine.clear(engine);
-      };
     });
 
     return () => {
       cancelled = true;
-      stop();
+      cancelAnimationFrame(frame);
+      if (physics.current !== null && matter.current !== null) {
+        matter.current.World.clear(physics.current.engine.world, false);
+        matter.current.Engine.clear(physics.current.engine);
+      }
+      physics.current = null;
+      matter.current = null;
     };
-  }, [effect]);
+  }, []);
+
+  React.useEffect(() => {
+    syncPhysics();
+    for (const effect of effects) {
+      if (knownEffects.current.has(effect._id)) continue;
+      knownEffects.current.add(effect._id);
+      fadeTimers.current.set(
+        effect._id,
+        window.setTimeout(() => {
+          setFadingEffects((current) => new Set(current).add(effect._id));
+        }, 4300),
+      );
+    }
+  }, [effects]);
+
+  React.useEffect(() => () => fadeTimers.current.forEach((timer) => window.clearTimeout(timer)), []);
 
   return (
     <div
       ref={layer}
-      className={`pointer-events-none fixed inset-0 z-[80] overflow-hidden transition-opacity duration-1000 ${fading ? "opacity-0" : ""}`}
+      className="pointer-events-none fixed inset-0 z-[80] overflow-hidden"
       aria-hidden
     >
-      {Array.from({ length: 18 }, (_, index) => (
-        // eslint-disable-next-line @next/next/no-img-element -- custom Convex-storage image URL
-        <img
-          key={index}
-          data-physics-image
-          src={images[index % images.length]}
-          alt=""
-          className="absolute h-10 w-10 object-contain"
-        />
-      ))}
+      {effects.flatMap((effect) =>
+        Array.from({ length: 18 }, (_, index) => {
+          const key = `${effect._id}-${index}`;
+          return (
+            // eslint-disable-next-line @next/next/no-img-element -- custom Convex-storage image URL
+            <img
+              key={key}
+              ref={(node) => {
+                if (node) nodes.current.set(key, node);
+                else nodes.current.delete(key);
+              }}
+              src={images[index % images.length]}
+              alt=""
+              className={`absolute h-10 w-10 object-contain transition-opacity duration-1000 ${fadingEffects.has(effect._id) ? "opacity-0" : ""}`}
+            />
+          );
+        }),
+      )}
     </div>
   );
 }
@@ -141,11 +189,11 @@ export function AudienceEffects() {
   if (active.length === 0 || reducedMotion) return null;
 
   const imageUrls = emojis.flatMap((emoji) => (emoji.imageUrl === null ? [] : [emoji.imageUrl]));
-  return active.map((effect) =>
-    effect.kind === "confetti" ? (
-      <ConfettiBurst key={effect._id} />
-    ) : (
-      <ImageRain key={effect._id} effect={effect} imageUrls={imageUrls} />
-    ),
+  const imageEffects = active.filter((effect) => effect.kind === "imageRain");
+  return (
+    <>
+      {active.filter((effect) => effect.kind === "confetti").map((effect) => <ConfettiBurst key={effect._id} />)}
+      {imageEffects.length > 0 && <ImageRain effects={imageEffects} imageUrls={imageUrls} />}
+    </>
   );
 }
