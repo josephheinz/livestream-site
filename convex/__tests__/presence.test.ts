@@ -11,6 +11,9 @@ async function seedStream(
     title: "Live show",
     scheduledStart: Date.now(),
   });
+  await admin.mutation(internal.streams.beginPublish, {
+    streamKey: (await admin.query(api.streams.get, { streamId }))!.ingestKey!,
+  });
   await admin.mutation(api.streams.goLive, { streamId });
   return streamId;
 }

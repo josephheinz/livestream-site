@@ -54,6 +54,45 @@ http.route({
   }),
 });
 
+http.route({
+  path: "/ingest/publish",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const secret = process.env.INGEST_WEBHOOK_SECRET;
+    if (!secret || request.headers.get("x-ingest-secret") !== secret) {
+      return Response.json({ ok: false }, { status: 403 });
+    }
+    const { streamKey } = (await request.json().catch(() => ({}))) as {
+      streamKey?: unknown;
+    };
+    if (typeof streamKey !== "string") {
+      return Response.json({ ok: false }, { status: 400 });
+    }
+    const result = await ctx.runMutation(internal.streams.beginPublish, {
+      streamKey,
+    });
+    return Response.json(result, { status: result.ok ? 200 : 403 });
+  }),
+});
+
+http.route({
+  path: "/ingest/unpublish",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const secret = process.env.INGEST_WEBHOOK_SECRET;
+    if (!secret || request.headers.get("x-ingest-secret") !== secret) {
+      return Response.json({ ok: false }, { status: 403 });
+    }
+    const { streamKey } = (await request.json().catch(() => ({}))) as {
+      streamKey?: unknown;
+    };
+    await ctx.runMutation(internal.streams.endPublish, {
+      streamKey: typeof streamKey === "string" ? streamKey : "",
+    });
+    return Response.json({ ok: true });
+  }),
+});
+
 type ClerkWebhookEvent = {
   type: string;
   data: {

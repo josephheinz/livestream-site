@@ -1,11 +1,21 @@
 /// <reference types="vite/client" />
 import { expect, test } from "vitest";
-import { api } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { asAdmin, asUser, setup } from "./test.helpers";
 
 const ORIGIN_RECORDING_URL =
   "http://nms.internal:8000/recordings/SECRET_KEY/2026-07-07.m3u8";
+
+async function armAndGoLive(
+  admin: Awaited<ReturnType<typeof asAdmin>>,
+  streamId: Id<"streams">,
+): Promise<void> {
+  await admin.mutation(internal.streams.beginPublish, {
+    streamKey: (await admin.query(api.streams.get, { streamId }))!.ingestKey!,
+  });
+  await admin.mutation(api.streams.goLive, { streamId });
+}
 
 async function seedEnded(
   admin: Awaited<ReturnType<typeof asAdmin>>,
@@ -17,7 +27,7 @@ async function seedEnded(
     title,
     scheduledStart,
   });
-  await admin.mutation(api.streams.goLive, { streamId });
+  await armAndGoLive(admin, streamId);
   await admin.mutation(api.streams.end, { streamId });
   if (recordingUrl !== undefined) {
     await admin.mutation(api.streams.attachRecording, { streamId, recordingUrl });
@@ -43,7 +53,7 @@ test("listUpcoming: only scheduled streams, soonest first", async () => {
     title: "already live",
     scheduledStart: now,
   });
-  await admin.mutation(api.streams.goLive, { streamId: liveId });
+  await armAndGoLive(admin, liveId);
   const canceledId = await admin.mutation(api.streams.create, {
     title: "called off",
     scheduledStart: now + 3_000_000,
@@ -159,7 +169,7 @@ test("cancel only valid from scheduled", async () => {
     title: "on air",
     scheduledStart: Date.now(),
   });
-  await admin.mutation(api.streams.goLive, { streamId: liveId });
+  await armAndGoLive(admin, liveId);
   await expect(
     admin.mutation(api.streams.cancel, { streamId: liveId }),
   ).rejects.toThrow();
@@ -196,7 +206,6 @@ test("update edits metadata without changing status", async () => {
     title: "after",
     description: "new details",
     scheduledStart: now + 500_000,
-    liveUrl: "http://nms.internal:8000/live/NEW_KEY/index.m3u8",
   });
   const stream = await admin.query(api.streams.get, { streamId });
   expect(stream).toMatchObject({
@@ -231,7 +240,7 @@ test("current: live wins, else soonest scheduled, else latest ended (no recordin
     title: "on air",
     scheduledStart: now,
   });
-  await admin.mutation(api.streams.goLive, { streamId: liveId });
+  await armAndGoLive(admin, liveId);
   expect((await t.query(api.streams.current))?.title).toBe("on air");
 });
 

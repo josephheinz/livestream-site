@@ -77,3 +77,11 @@ with `lastSeen > now − 60s`. Never a stored counter. Cron purges stale rows.
 session-time `users.ensure` upsert as the gap-filler. `user.deleted` removes
 only the users row; chat messages keep their dangling `userId` and readers
 render "Deleted user".
+
+## ADR-009: Live URLs are derived server-side (D5)
+
+**Decision**: When publishing starts, Convex derives `liveUrl` from the
+stream's `ingestKey` and `MEDIA_SERVER_HLS_BASE`; admins no longer paste it.
+
+**Consequence**: The stored playback URL always matches the active publish
+credential and configured media server.

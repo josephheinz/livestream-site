@@ -1,11 +1,28 @@
 import { v } from "convex/values";
-import { internalQuery, mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
+import {
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+} from "./_generated/server";
 import type { QueryCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { getCurrentUser, requireAdmin } from "./lib/auth";
 import { resolveCurrent } from "./lib/currentStream";
+import { deriveLiveUrl, generateIngestKey } from "./lib/ingest";
 
 export const LIVE_PROXY_PATH = "/stream/live.m3u8";
+export const GRACE_MS = 30_000;
+
+// Fail loudly instead of deriving "undefined/live/..." URLs when the env is unset.
+function requireHlsBase(): string {
+  const base = process.env.MEDIA_SERVER_HLS_BASE;
+  if (!base) {
+    throw new Error("MEDIA_SERVER_HLS_BASE is not set on this deployment");
+  }
+  return base;
+}
 
 export function vodProxyPath(streamId: string) {
   return `/stream/vod/${streamId}.m3u8`;
@@ -24,7 +41,7 @@ export function sanitize(stream: Doc<"streams">, isAdmin: boolean): Doc<"streams
   if (isAdmin) {
     return stream;
   }
-  return {
+  const sanitized = {
     ...stream,
     liveUrl:
       stream.status === "live" && stream.liveUrl !== undefined
@@ -33,9 +50,15 @@ export function sanitize(stream: Doc<"streams">, isAdmin: boolean): Doc<"streams
     recordingUrl:
       stream.recordingUrl !== undefined ? vodProxyPath(stream._id) : undefined,
   };
+  delete sanitized.ingestKey;
+  delete sanitized.ingestActive;
+  delete sanitized.publishEpoch;
+  return sanitized;
 }
 
-async function findLive(ctx: QueryCtx): Promise<Doc<"streams"> | null> {
+async function findLive(
+  ctx: { db: QueryCtx["db"] },
+): Promise<Doc<"streams"> | null> {
   return await ctx.db
     .query("streams")
     .withIndex("by_status", (q) => q.eq("status", "live"))
@@ -147,25 +170,30 @@ export const create = mutation({
     title: v.string(),
     description: v.optional(v.string()),
     scheduledStart: v.number(),
-    liveUrl: v.optional(v.string()),
   },
+  returns: v.id("streams"),
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
     return await ctx.db.insert("streams", {
       ...args,
       status: "scheduled",
       visibility: "public",
+      ingestKey: generateIngestKey(),
     });
   },
 });
 
 export const goLive = mutation({
   args: { streamId: v.id("streams") },
+  returns: v.null(),
   handler: async (ctx, { streamId }) => {
     await requireAdmin(ctx);
     const stream = await getStreamOrThrow(ctx, streamId);
     if (stream.status !== "scheduled") {
       throw new Error(`Cannot go live from status "${stream.status}"`);
+    }
+    if (stream.ingestActive !== true) {
+      throw new Error("No active ingest");
     }
     // Transactional single-live invariant (FR-002, research D2): mutations are
     // serializable, so this check-then-write cannot race.
@@ -173,20 +201,30 @@ export const goLive = mutation({
     if (alreadyLive !== null) {
       throw new Error("Another stream is already live");
     }
-    await ctx.db.patch(streamId, { status: "live", actualStart: Date.now() });
+    await ctx.db.patch(streamId, {
+      status: "live",
+      actualStart: Date.now(),
+      publishEpoch: (stream.publishEpoch ?? 0) + 1,
+      liveUrl: deriveLiveUrl(requireHlsBase(), stream.ingestKey!),
+    });
     return null;
   },
 });
 
 export const end = mutation({
   args: { streamId: v.id("streams") },
+  returns: v.null(),
   handler: async (ctx, { streamId }) => {
     await requireAdmin(ctx);
     const stream = await getStreamOrThrow(ctx, streamId);
     if (stream.status !== "live") {
       throw new Error(`Cannot end from status "${stream.status}"`);
     }
-    await ctx.db.patch(streamId, { status: "ended", actualEnd: Date.now() });
+    await ctx.db.patch(streamId, {
+      status: "ended",
+      actualEnd: Date.now(),
+      publishEpoch: (stream.publishEpoch ?? 0) + 1,
+    });
     return null;
   },
 });
@@ -197,8 +235,8 @@ export const update = mutation({
     title: v.optional(v.string()),
     description: v.optional(v.string()),
     scheduledStart: v.optional(v.number()),
-    liveUrl: v.optional(v.string()),
   },
+  returns: v.null(),
   handler: async (ctx, { streamId, ...fields }) => {
     await requireAdmin(ctx);
     await getStreamOrThrow(ctx, streamId);
@@ -246,15 +284,105 @@ export const cancel = mutation({
   },
 });
 
+export const revealIngestKey = query({
+  args: { streamId: v.id("streams") },
+  returns: v.union(v.string(), v.null()),
+  handler: async (ctx, { streamId }) => {
+    await requireAdmin(ctx);
+    return (await ctx.db.get(streamId))?.ingestKey ?? null;
+  },
+});
+
+export const rotateIngestKey = mutation({
+  args: { streamId: v.id("streams") },
+  returns: v.string(),
+  handler: async (ctx, { streamId }) => {
+    await requireAdmin(ctx);
+    const stream = await getStreamOrThrow(ctx, streamId);
+    const ingestKey = generateIngestKey();
+    await ctx.db.patch(streamId, {
+      ingestKey,
+      publishEpoch: (stream.publishEpoch ?? 0) + 1,
+    });
+    return ingestKey;
+  },
+});
+
+export const beginPublish = internalMutation({
+  args: { streamKey: v.string() },
+  returns: v.object({ ok: v.boolean() }),
+  handler: async (ctx, { streamKey }) => {
+    const stream = await ctx.db
+      .query("streams")
+      .withIndex("by_ingestKey", (q) => q.eq("ingestKey", streamKey))
+      .unique();
+    if (
+      stream === null ||
+      (stream.status !== "scheduled" && stream.status !== "live")
+    ) {
+      return { ok: false };
+    }
+    const alreadyLive = await findLive(ctx);
+    if (alreadyLive !== null && alreadyLive._id !== stream._id) {
+      return { ok: false };
+    }
+    await ctx.db.patch(stream._id, {
+      ingestActive: true,
+      publishEpoch: (stream.publishEpoch ?? 0) + 1,
+    });
+    return { ok: true };
+  },
+});
+
+export const endPublish = internalMutation({
+  args: { streamKey: v.string() },
+  returns: v.null(),
+  handler: async (ctx, { streamKey }): Promise<null> => {
+    const stream = await ctx.db
+      .query("streams")
+      .withIndex("by_ingestKey", (q) => q.eq("ingestKey", streamKey))
+      .unique();
+    if (stream !== null) {
+      await ctx.db.patch(stream._id, { ingestActive: false });
+    }
+    if (stream?.status === "live") {
+      await ctx.scheduler.runAfter(GRACE_MS, internal.streams.finalizePublishEnd, {
+        streamId: stream._id,
+        epoch: stream.publishEpoch ?? 0,
+      });
+    }
+    return null;
+  },
+});
+
+export const finalizePublishEnd = internalMutation({
+  args: { streamId: v.id("streams"), epoch: v.number() },
+  returns: v.null(),
+  handler: async (ctx, { streamId, epoch }) => {
+    const stream = await ctx.db.get(streamId);
+    if (
+      stream !== null &&
+      stream.status === "live" &&
+      (stream.publishEpoch ?? 0) === epoch
+    ) {
+      await ctx.db.patch(streamId, { status: "ended", actualEnd: Date.now() });
+    }
+    return null;
+  },
+});
+
 // ---------------------------------------------------------------------------
 // Internal — HLS proxy resolution (app/stream/[[...path]]/route.ts, D15)
 // ---------------------------------------------------------------------------
 
 export const originForLive = internalQuery({
   args: {},
+  returns: v.union(v.string(), v.null()),
   handler: async (ctx) => {
     const stream = await findLive(ctx);
-    return stream?.liveUrl ?? null;
+    return stream?.ingestKey === undefined
+      ? null
+      : deriveLiveUrl(requireHlsBase(), stream.ingestKey);
   },
 });
 
