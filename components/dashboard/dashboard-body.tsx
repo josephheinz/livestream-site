@@ -10,6 +10,7 @@ import { BannedUsers } from "./banned-users";
 import { AnnouncementCard } from "./announcement-card";
 import { AudienceEffectsCard } from "./audience-effects-card";
 import { PollCard } from "./poll-card";
+import { EmojiCard } from "./emoji-card";
 import { IngestCard } from "./ingest-card";
 
 function formatThousands(n: number): string {
@@ -73,6 +74,7 @@ export function DashboardBody() {
         <AnnouncementCard />
         <AudienceEffectsCard />
         <PollCard />
+        <EmojiCard />
         <StreamTitleCard />
         <TickerCard />
       </div>
