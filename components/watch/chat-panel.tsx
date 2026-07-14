@@ -11,6 +11,7 @@ import { useAuthModal } from "@/components/site/auth-modal";
 
 type ChatMessage = {
   _id: Id<"chatMessages">;
+  _creationTime: number;
   body: string;
   authorName: string;
   userId: Id<"users">;
@@ -322,11 +323,30 @@ export function ChatPanel({
         </div>
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto bg-background px-3.5 py-3">
-          {messages.map((m) => (
+          {messages.map((m, i) => {
+            const prev = messages[i - 1];
+            const showDay =
+              prev === undefined ||
+              dayLabel(prev._creationTime) !== dayLabel(m._creationTime);
+            return (
+            <React.Fragment key={m._id}>
+              {showDay && (
+                <div
+                  role="separator"
+                  aria-label={dayLabel(m._creationTime)}
+                  className="my-2 flex items-center gap-2 font-mono text-[11px] text-muted-foreground uppercase"
+                >
+                  <span aria-hidden="true" className="h-px flex-1 bg-border" />
+                  <span>{dayLabel(m._creationTime)}</span>
+                  <span aria-hidden="true" className="h-px flex-1 bg-border" />
+                </div>
+              )}
             <div
-              key={m._id}
               className={`mb-[9px] text-sm leading-tight break-words ${m.removed ? "opacity-50" : ""}`}
             >
+              <span className="font-mono text-[11px] text-muted-foreground">
+                {timeLabel(m._creationTime)}
+              </span>{" "}
               <UserNamePopover
                 userId={m.userId}
                 name={m.authorName}
@@ -357,7 +377,9 @@ export function ChatPanel({
                 </button>
               )}
             </div>
-          ))}
+            </React.Fragment>
+            );
+          })}
         </div>
       )}
 

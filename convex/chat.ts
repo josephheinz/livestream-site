@@ -7,7 +7,7 @@ import { isBanned } from "./lib/bans";
 
 const MAX_BODY_CHARS = 500;
 const RATE_LIMIT_MS = 2_000;
-const LIST_LIMIT = 100;
+const LIST_LIMIT = 50;
 
 export const list = query({
   args: { streamId: v.id("streams") },
