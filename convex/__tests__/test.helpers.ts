@@ -6,6 +6,8 @@ import schema from "../schema";
 export const modules = import.meta.glob("../**/*.ts");
 
 export function setup() {
+  // goLive/originForLive require this env; suites that care stub their own value.
+  process.env.MEDIA_SERVER_HLS_BASE ??= "http://nms.test:8000";
   return convexTest(schema, modules);
 }
 

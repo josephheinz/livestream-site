@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import { expect, test } from "vitest";
-import { api } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { asAdmin, asUser, setup } from "./test.helpers";
 
@@ -10,6 +10,9 @@ async function seedLiveStream(
   const streamId = await admin.mutation(api.streams.create, {
     title: "Live show",
     scheduledStart: Date.now(),
+  });
+  await admin.mutation(internal.streams.beginPublish, {
+    streamKey: (await admin.query(api.streams.get, { streamId }))!.ingestKey!,
   });
   await admin.mutation(api.streams.goLive, { streamId });
   return streamId;

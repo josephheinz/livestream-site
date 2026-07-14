@@ -31,7 +31,13 @@ const STATS: DashboardStats = {
   activeBans: 3,
 };
 
-type Stream = { _id: Id<"streams">; title: string; status: string; scheduledStart: number };
+type Stream = {
+  _id: Id<"streams">;
+  title: string;
+  status: string;
+  scheduledStart: number;
+  ingestActive?: boolean;
+};
 
 function mockData(opts: {
   me?: { role?: "admin" } | null;
@@ -104,10 +110,18 @@ describe("DashboardBody (wired stats — research D7)", () => {
 });
 
 describe("DashboardBody (go-live control — research D8)", () => {
-  it("GO LIVE transitions the next upcoming stream via streams.goLive", async () => {
+  it("GO LIVE transitions an armed upcoming stream via streams.goLive", async () => {
     mockData({
       live: null,
-      upcoming: [{ _id: "up1" as Id<"streams">, title: "NEXT", status: "scheduled", scheduledStart: 0 }],
+      upcoming: [
+        {
+          _id: "up1" as Id<"streams">,
+          title: "NEXT",
+          status: "scheduled",
+          scheduledStart: 0,
+          ingestActive: true,
+        },
+      ],
     });
     render(<DashboardBody />);
     fireEvent.click(screen.getAllByRole("button", { name: "GO LIVE" })[0]);
@@ -115,13 +129,24 @@ describe("DashboardBody (go-live control — research D8)", () => {
     expect(createMock).not.toHaveBeenCalled();
   });
 
-  it("GO LIVE with nothing scheduled creates a stream then goes live on it", async () => {
-    createMock.mockResolvedValue("new1" as Id<"streams">);
-    mockData({ live: null, upcoming: [] });
+  it("shows a disabled NO SIGNAL control when no armed stream exists", () => {
+    mockData({
+      live: null,
+      upcoming: [
+        {
+          _id: "up1" as Id<"streams">,
+          title: "NEXT",
+          status: "scheduled",
+          scheduledStart: 0,
+          ingestActive: false,
+        },
+      ],
+    });
     render(<DashboardBody />);
-    fireEvent.click(screen.getAllByRole("button", { name: "GO LIVE" })[0]);
-    await waitFor(() => expect(createMock).toHaveBeenCalled());
-    await waitFor(() => expect(goLiveMock).toHaveBeenCalledWith({ streamId: "new1" }));
+    fireEvent.click(screen.getByRole("button", { name: "NO SIGNAL" }));
+    expect(screen.getByRole("button", { name: "NO SIGNAL" })).toBeDisabled();
+    expect(goLiveMock).not.toHaveBeenCalled();
+    expect(createMock).not.toHaveBeenCalled();
   });
 
   it("GO OFF AIR ends the live stream via streams.end", async () => {

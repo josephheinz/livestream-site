@@ -25,7 +25,12 @@ export default defineSchema({
     liveUrl: v.optional(v.string()),
     recordingUrl: v.optional(v.string()),
     visibility: v.union(v.literal("public"), v.literal("private")),
-  }).index("by_status", ["status", "scheduledStart"]),
+    ingestKey: v.optional(v.string()),
+    ingestActive: v.optional(v.boolean()),
+    publishEpoch: v.optional(v.number()),
+  })
+    .index("by_status", ["status", "scheduledStart"])
+    .index("by_ingestKey", ["ingestKey"]),
 
   chatMessages: defineTable({
     streamId: v.id("streams"),

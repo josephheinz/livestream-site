@@ -53,6 +53,8 @@ load-bearing decisions in [docs/ADR.md](docs/ADR.md).
    | `CLERK_FRONTEND_API_URL` | Clerk JWT issuer URL (read by `convex/auth.config.ts`) |
    | `CLERK_WEBHOOK_SECRET` | svix secret for the `/clerk-users-webhook` endpoint (Clerk dashboard → Webhooks; point the webhook at `https://<deployment>.convex.site/clerk-users-webhook`) |
    | `STREAM_PROXY_SECRET` | shared secret guarding the `/stream-origin` endpoint used by the HLS proxy |
+   | `INGEST_WEBHOOK_SECRET` | shared secret that must match the media server's `x-ingest-secret` header value |
+   | `MEDIA_SERVER_HLS_BASE` | base URL of the media server's HLS output |
 
 5. **Set the web-side proxy secret** in `.env.local` (same value as step 4):
 
@@ -63,6 +65,22 @@ load-bearing decisions in [docs/ADR.md](docs/ADR.md).
    The proxy derives the Convex HTTP-actions URL from `NEXT_PUBLIC_CONVEX_URL`
    (`.convex.cloud` → `.convex.site`). Running the local backend? Set
    `NEXT_PUBLIC_CONVEX_SITE_URL` (e.g. `http://127.0.0.1:3211`) explicitly.
+   Keep `INGEST_WEBHOOK_SECRET` and `MEDIA_SERVER_HLS_BASE` in the Convex
+   deployment environment; they do not belong in `.env.local`.
+
+## Stream ingest
+
+Publish to `rtmp://<media-host>/live/<ingestKey>`. HLS must be served at
+`${MEDIA_SERVER_HLS_BASE}/live/<ingestKey>/index.m3u8`. The media server's
+publish hooks call `POST /ingest/publish` and `POST /ingest/unpublish` on the
+Convex deployment's `.site` host with an `x-ingest-secret` header matching
+`INGEST_WEBHOOK_SECRET`. See
+[the ingest HTTP contract](specs/004-stream-ingest/contracts/ingest-http.md) for details.
+
+**Encoder settings (latency):** set the keyframe interval to **2s** in OBS
+(Settings → Output → Streaming → Keyframe Interval; the default `0 = auto` means
+~8s). The HLS transmux stream-copies, so segments can only split on keyframes —
+8s keyframes produce ~25s of viewer delay; 2s keyframes bring it to ~4-6s.
 
 ## Running the app
 
@@ -102,6 +120,8 @@ clips, privacy, key-leak check) is in
 | `NEXT_PUBLIC_CONVEX_SITE_URL` / `CONVEX_SITE_URL` | `.env.local` | only when the HTTP-actions URL isn't derivable (local backend) |
 | `CLERK_FRONTEND_API_URL` | Convex env | Clerk JWT issuer (auth config) |
 | `CLERK_WEBHOOK_SECRET` | Convex env | Clerk webhook verification |
+| `INGEST_WEBHOOK_SECRET` | Convex env | must match the media server's `x-ingest-secret` header value |
+| `MEDIA_SERVER_HLS_BASE` | Convex env | base URL of the media server's HLS output |
 
 ## Troubleshooting
 

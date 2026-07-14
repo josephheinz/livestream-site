@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type * as React from "react";
 
 // hls.js is mocked at the module boundary; the Player is exercised through its
 // rendered behavior and the calls it makes into the (mocked) player library.
@@ -10,6 +11,23 @@ const startLoad = vi.fn();
 const recoverMediaError = vi.fn();
 const destroy = vi.fn();
 const cfg = { supported: true };
+
+// Dice UI's media-player (via media-chrome) injects modern CSS that jsdom's
+// css-tree parser can't handle; the primitives are mocked with plain elements.
+// Real playback/controls are verified in the browser, not here.
+vi.mock("@/components/ui/media-player", () => ({
+  MediaPlayer: ({ children, className }: { children?: React.ReactNode; className?: string }) => (
+    <div className={className}>{children}</div>
+  ),
+  MediaPlayerVideo: (props: React.ComponentProps<"video">) => <video {...props} />,
+  MediaPlayerControls: (props: React.ComponentProps<"div">) => <div {...props} />,
+  MediaPlayerPlay: () => <button type="button" aria-label="Play" />,
+  MediaPlayerSeek: ({ className }: { className?: string }) => (
+    <div data-slot="media-player-seek" className={className} />
+  ),
+  MediaPlayerVolume: () => <div data-slot="media-player-volume" />,
+  MediaPlayerFullscreen: () => <button type="button" aria-label="Fullscreen" />,
+}));
 
 vi.mock("hls.js", () => {
   class Hls {
