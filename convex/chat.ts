@@ -131,6 +131,50 @@ export const send = mutation({
   },
 });
 
+// Pinned message shown in the banner above chat. Returns null when nothing is
+// pinned or the pinned message was since removed (no cross-table sync needed).
+export const pinned = query({
+  args: { streamId: v.id("streams") },
+  handler: async (ctx, { streamId }) => {
+    const stream = await ctx.db.get(streamId);
+    if (stream?.pinnedMessageId === undefined) {
+      return null;
+    }
+    const message = await ctx.db.get(stream.pinnedMessageId);
+    if (message === null || message.removed) {
+      return null;
+    }
+    const author = await ctx.db.get(message.userId);
+    return {
+      _id: message._id,
+      body: message.body,
+      authorName: author?.name ?? "Deleted user",
+    };
+  },
+});
+
+export const pin = mutation({
+  args: { messageId: v.id("chatMessages") },
+  handler: async (ctx, { messageId }) => {
+    await requireAdmin(ctx);
+    const message = await ctx.db.get(messageId);
+    if (message === null || message.removed) {
+      throw new Error("Message not found");
+    }
+    await ctx.db.patch(message.streamId, { pinnedMessageId: messageId });
+    return null;
+  },
+});
+
+export const unpin = mutation({
+  args: { streamId: v.id("streams") },
+  handler: async (ctx, { streamId }) => {
+    await requireAdmin(ctx);
+    await ctx.db.patch(streamId, { pinnedMessageId: undefined });
+    return null;
+  },
+});
+
 export const remove = mutation({
   args: { messageId: v.id("chatMessages") },
   handler: async (ctx, { messageId }) => {

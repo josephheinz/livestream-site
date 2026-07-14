@@ -187,6 +187,38 @@ test("deleted author lists with the 'Deleted user' fallback (research D11)", asy
   expect(message.authorName).toBe("Deleted user");
 });
 
+test("pin is admin-only; pinned surfaces the message; unpin and remove clear it", async () => {
+  const t = setup();
+  const admin = await asAdmin(t);
+  const viewer = await asUser(t);
+  const streamId = await seedLiveStream(admin);
+
+  await viewer.mutation(api.chat.send, { streamId, body: "big announcement" });
+  const [message] = await t.query(api.chat.list, { streamId });
+
+  await expect(
+    viewer.mutation(api.chat.pin, { messageId: message._id }),
+  ).rejects.toThrow();
+  expect(await t.query(api.chat.pinned, { streamId })).toBeNull();
+
+  await admin.mutation(api.chat.pin, { messageId: message._id });
+  expect(await t.query(api.chat.pinned, { streamId })).toMatchObject({
+    body: "big announcement",
+    authorName: "Viewer",
+  });
+
+  await expect(
+    viewer.mutation(api.chat.unpin, { streamId }),
+  ).rejects.toThrow();
+  await admin.mutation(api.chat.unpin, { streamId });
+  expect(await t.query(api.chat.pinned, { streamId })).toBeNull();
+
+  // Re-pin, then removing the message hides the banner without extra sync.
+  await admin.mutation(api.chat.pin, { messageId: message._id });
+  await admin.mutation(api.chat.remove, { messageId: message._id });
+  expect(await t.query(api.chat.pinned, { streamId })).toBeNull();
+});
+
 test("send without a streamId bootstraps the channel's stream row (chat always works)", async () => {
   const t = setup();
   await asAdmin(t);

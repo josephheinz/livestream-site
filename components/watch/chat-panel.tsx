@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Pin } from "lucide-react";
 import { Popover } from "radix-ui";
 import { useQuery, useMutation } from "convex/react";
 import { useAuth } from "@clerk/nextjs";
@@ -259,6 +260,9 @@ export function ChatPanel({
   const isAdmin = me?.role === "admin";
   const send = useMutation(api.chat.send);
   const removeMessage = useMutation(api.chat.remove);
+  const pinned = useQuery(api.chat.pinned, streamId ? { streamId } : "skip");
+  const pinMessage = useMutation(api.chat.pin);
+  const unpinMessage = useMutation(api.chat.unpin);
 
   const [draft, setDraft] = React.useState("");
   const [pickerOpen, setPickerOpen] = React.useState(false);
@@ -309,6 +313,32 @@ export function ChatPanel({
         <span className="font-display text-[13px] uppercase">Live Chat</span>
         <span className="font-mono text-[11px] text-bar-muted">[{formatThousands(viewers)} ONLINE]</span>
       </div>
+
+      {pinned != null && !banned && (
+        <div className="flex flex-none items-start gap-2 border-b-2 border-border bg-card px-3.5 py-2 text-sm leading-tight">
+          <Pin aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 flex-none text-muted-foreground" />
+          <div className="min-w-0 flex-1 break-words">
+            <span
+              className="font-sans text-[13px] font-bold"
+              style={{ color: colorFor(pinned.authorName) }}
+            >
+              {pinned.authorName}
+            </span>
+            <span className="text-muted-foreground">:</span>{" "}
+            {renderBody(pinned.body, emojiUrls)}
+          </div>
+          {isAdmin && streamId !== undefined && (
+            <button
+              type="button"
+              aria-label="Unpin message"
+              onClick={() => unpinMessage({ streamId })}
+              className="cursor-pointer font-mono text-[11px] text-muted-foreground hover:text-primary"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      )}
 
       {banned ? (
         <div className="flex min-h-0 flex-1 flex-col justify-center p-4">
@@ -367,14 +397,24 @@ export function ChatPanel({
                 </span>
               )}
               {isAdmin && !m.removed && (
-                <button
-                  type="button"
-                  aria-label="Remove message"
-                  onClick={() => removeMessage({ messageId: m._id })}
-                  className="ml-1.5 cursor-pointer font-mono text-[11px] text-muted-foreground hover:text-primary"
-                >
-                  ✕
-                </button>
+                <>
+                  <button
+                    type="button"
+                    aria-label="Pin message"
+                    onClick={() => pinMessage({ messageId: m._id })}
+                    className="ml-1.5 cursor-pointer text-muted-foreground hover:text-primary"
+                  >
+                    <Pin className="inline h-3 w-3" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Remove message"
+                    onClick={() => removeMessage({ messageId: m._id })}
+                    className="ml-1.5 cursor-pointer font-mono text-[11px] text-muted-foreground hover:text-primary"
+                  >
+                    ✕
+                  </button>
+                </>
               )}
             </div>
             </React.Fragment>
