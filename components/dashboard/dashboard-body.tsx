@@ -9,16 +9,14 @@ import { ExternalConnections } from "./external-connections";
 import { BannedUsers } from "./banned-users";
 import { AnnouncementCard } from "./announcement-card";
 import { AudienceEffectsCard } from "./audience-effects-card";
+import { IngestCard } from "./ingest-card";
 
 function formatThousands(n: number): string {
   return n.toLocaleString("en-US");
 }
 
-// Title for a stream the admin creates on the fly when nothing is scheduled (D8).
-const DEFAULT_TITLE = "LIVE NOW";
-
 // Live console body: stats mapped per research D7, go-live control driving the
-// real lifecycle via streams.goLive/end (create fallback) per research D8.
+// real lifecycle via streams.goLive/end per research D8.
 export function DashboardBody() {
   const live = useQuery(api.streams.getLive);
   const upcoming = useQuery(api.streams.listUpcoming);
@@ -28,9 +26,10 @@ export function DashboardBody() {
 
   const goLive = useMutation(api.streams.goLive);
   const endStream = useMutation(api.streams.end);
-  const createStream = useMutation(api.streams.create);
 
   const isLive = live != null;
+  const ingestStream = live ?? upcoming?.[0];
+  const canGoLive = ingestStream?.ingestActive === true;
 
   const stats = {
     status: (isLive ? "ON AIR" : "OFF AIR") as "ON AIR" | "OFF AIR",
@@ -45,10 +44,7 @@ export function DashboardBody() {
       await endStream({ streamId: live._id });
       return;
     }
-    const next = upcoming?.[0];
-    const target =
-      next?._id ?? (await createStream({ title: DEFAULT_TITLE, scheduledStart: Date.now() }));
-    await goLive({ streamId: target });
+    if (ingestStream) await goLive({ streamId: ingestStream._id });
   };
 
   return (
@@ -63,9 +59,10 @@ export function DashboardBody() {
         <button
           type="button"
           onClick={toggle}
-          className="cursor-pointer border-2 border-border bg-primary px-[22px] py-[11px] font-display text-[14px] text-primary-foreground uppercase shadow-brutal transition-transform hover:-translate-x-px hover:-translate-y-px"
+          disabled={!isLive && !canGoLive}
+          className="cursor-pointer border-2 border-border bg-primary px-[22px] py-[11px] font-display text-[14px] text-primary-foreground uppercase shadow-brutal transition-transform hover:-translate-x-px hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-x-0 disabled:hover:translate-y-0"
         >
-          {isLive ? "GO OFF AIR" : "GO LIVE"}
+          {isLive ? "GO OFF AIR" : canGoLive ? "GO LIVE" : "NO SIGNAL"}
         </button>
       </div>
 
@@ -83,6 +80,13 @@ export function DashboardBody() {
         <StreamTitleCard />
         <TickerCard />
       </div>
+
+      <IngestCard
+        key={ingestStream?._id ?? "no-stream"}
+        streamId={ingestStream?._id}
+        isLive={ingestStream?.status === "live"}
+        ingestActive={ingestStream?.ingestActive === true}
+      />
 
       <ExternalConnections />
 
