@@ -44,7 +44,7 @@ function renderBody(body: string, emojiUrls: Map<string, string>): React.ReactNo
     const url = match ? emojiUrls.get(match[1]) : undefined;
     if (match && url !== undefined) {
       return (
-        <Tooltip.Provider key={i} delayDuration={150}>
+        <Tooltip.Provider key={i} delayDuration={150} disableHoverableContent>
           <Tooltip.Root>
             <Tooltip.Trigger asChild>
               {/* eslint-disable-next-line @next/next/no-img-element -- dynamic Convex-storage emoji URL */}
@@ -58,7 +58,7 @@ function renderBody(body: string, emojiUrls: Map<string, string>): React.ReactNo
               <Tooltip.Content
                 sideOffset={4}
                 collisionPadding={8}
-                className="z-50 border-2 border-border bg-bar px-2 py-1 font-mono text-[11px] text-bar-ink shadow-brutal-sm"
+                className="pointer-events-none z-50 border-2 border-border bg-bar px-2 py-1 font-mono text-[11px] text-bar-ink shadow-brutal-sm"
               >
                 {part}
               </Tooltip.Content>
