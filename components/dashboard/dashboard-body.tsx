@@ -69,19 +69,10 @@ export function DashboardBody() {
 
       <StatRow stats={stats} />
 
-      <div className="grid grid-cols-1 md:grid-cols-2">
-        <AnnouncementCard />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2">
-        <AudienceEffectsCard />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2">
-        <PollCard />
-      </div>
-
       <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 md:items-start">
+        <AnnouncementCard />
+        <AudienceEffectsCard />
+        <PollCard />
         <StreamTitleCard />
         <TickerCard />
       </div>
