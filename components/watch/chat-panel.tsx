@@ -9,6 +9,7 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { InputGroup } from "@/components/ui/input-group";
 import { useAuthModal } from "@/components/site/auth-modal";
+import { PollBanner } from "@/components/watch/poll-banner";
 
 type ChatMessage = {
   _id: Id<"chatMessages">;
@@ -313,6 +314,8 @@ export function ChatPanel({
         <span className="font-display text-[13px] uppercase">Live Chat</span>
         <span className="font-mono text-[11px] text-bar-muted">[{formatThousands(viewers)} ONLINE]</span>
       </div>
+
+      {!banned && <PollBanner streamId={streamId} />}
 
       {pinned != null && !banned && (
         <div className="flex flex-none items-start gap-2 border-b-2 border-border bg-card px-3.5 py-2 text-sm leading-tight">
