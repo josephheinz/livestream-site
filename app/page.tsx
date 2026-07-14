@@ -27,7 +27,9 @@ export default function WatchPage() {
   const title = boundStream?.title ?? CHANNEL_NAME;
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
+    // lg locks to the viewport so the chat column is height-bounded and
+    // scrolls internally; below lg the page itself scrolls.
+    <div className="flex min-h-dvh flex-col bg-background text-foreground lg:h-dvh">
       <Banner live={isLive} viewers={viewers} />
       <main className="grid min-h-0 flex-1 grid-cols-1 gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_380px] lg:grid-rows-1">
         <div className="flex min-h-0 min-w-0 flex-col gap-4">

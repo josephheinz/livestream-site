@@ -42,6 +42,21 @@ export default defineSchema({
     .index("by_stream", ["streamId"])
     .index("by_user_and_stream", ["userId", "streamId"]),
 
+  polls: defineTable({
+    streamId: v.id("streams"),
+    question: v.string(),
+    options: v.array(v.string()),
+    // Denormalized tallies, one per option, patched on each vote.
+    counts: v.array(v.number()),
+    expiresAt: v.number(),
+  }).index("by_stream", ["streamId"]),
+
+  pollVotes: defineTable({
+    pollId: v.id("polls"),
+    userId: v.id("users"),
+    optionIndex: v.number(),
+  }).index("by_poll_and_user", ["pollId", "userId"]),
+
   reactions: defineTable({
     streamId: v.id("streams"),
     userId: v.id("users"),

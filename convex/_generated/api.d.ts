@@ -18,6 +18,7 @@ import type * as lib_auth from "../lib/auth.js";
 import type * as lib_bans from "../lib/bans.js";
 import type * as lib_currentStream from "../lib/currentStream.js";
 import type * as lib_ingest from "../lib/ingest.js";
+import type * as polls from "../polls.js";
 import type * as presence from "../presence.js";
 import type * as reactions from "../reactions.js";
 import type * as settings from "../settings.js";
@@ -41,6 +42,7 @@ declare const fullApi: ApiFromModules<{
   "lib/bans": typeof lib_bans;
   "lib/currentStream": typeof lib_currentStream;
   "lib/ingest": typeof lib_ingest;
+  polls: typeof polls;
   presence: typeof presence;
   reactions: typeof reactions;
   settings: typeof settings;
