@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { render, screen } from "@testing-library/react";
+import type * as React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getFunctionName } from "convex/server";
 import { api } from "@/convex/_generated/api";
@@ -16,6 +17,20 @@ vi.mock("next/link", () => ({
       </a>
     );
   },
+}));
+
+// Dice UI's media-player (via media-chrome) injects CSS jsdom can't parse;
+// its primitives are mocked with plain elements (as in player.test.tsx).
+vi.mock("@/components/ui/media-player", () => ({
+  MediaPlayer: ({ children, className }: { children?: React.ReactNode; className?: string }) => (
+    <div className={className}>{children}</div>
+  ),
+  MediaPlayerVideo: (props: React.ComponentProps<"video">) => <video {...props} />,
+  MediaPlayerControls: (props: React.ComponentProps<"div">) => <div {...props} />,
+  MediaPlayerPlay: () => <button type="button" aria-label="Play" />,
+  MediaPlayerSeek: () => <div data-slot="media-player-seek" />,
+  MediaPlayerVolume: () => <div data-slot="media-player-volume" />,
+  MediaPlayerFullscreen: () => <button type="button" aria-label="Fullscreen" />,
 }));
 
 // hls.js is exercised by the wired Player; a minimal mock keeps the live branch
