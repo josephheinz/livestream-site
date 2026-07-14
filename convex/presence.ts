@@ -1,45 +1,63 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getCurrentUser } from "./lib/auth";
+import { ensureCurrent, resolveCurrent } from "./lib/currentStream";
 
 const FRESH_WINDOW_MS = 60_000;
 
+// streamId is optional everywhere: presence follows the current stream so the
+// online count works 100% of the time, on or off air.
+
 export const count = query({
-  args: { streamId: v.id("streams") },
+  args: { streamId: v.optional(v.id("streams")) },
   handler: async (ctx, { streamId }) => {
+    const id = streamId ?? (await resolveCurrent(ctx))?._id;
+    if (id === undefined) {
+      return 0;
+    }
     const cutoff = Date.now() - FRESH_WINDOW_MS;
     // ponytail: count-on-read is O(viewers) per subscriber; swap for
     // @convex-dev/presence or a sharded counter past ~1k concurrent (research D4)
     const fresh = await ctx.db
       .query("presenceSessions")
       .withIndex("by_stream_and_lastSeen", (q) =>
-        q.eq("streamId", streamId).gt("lastSeen", cutoff),
+        q.eq("streamId", id).gt("lastSeen", cutoff),
       )
       .collect();
-    return fresh.length;
+    const users = new Set(fresh.map(({ userId }) => userId));
+    users.delete(undefined);
+    return users.size;
   },
 });
 
 export const heartbeat = mutation({
-  args: { streamId: v.id("streams"), sessionId: v.string() },
+  args: { streamId: v.optional(v.id("streams")), sessionId: v.string() },
   handler: async (ctx, { streamId, sessionId }) => {
-    const user = await getCurrentUser(ctx); // anonymous viewers count too
-    const existing = await ctx.db
+    const user = await getCurrentUser(ctx);
+    if (user === null) {
+      return null;
+    }
+    const id = streamId ?? (await ensureCurrent(ctx))._id;
+    const sessions = await ctx.db
       .query("presenceSessions")
-      .withIndex("by_session", (q) =>
-        q.eq("streamId", streamId).eq("sessionId", sessionId),
+      .withIndex("by_streamId_and_userId", (q) =>
+        q.eq("streamId", id).eq("userId", user._id),
       )
-      .unique();
-    if (existing !== null) {
-      await ctx.db.patch(existing._id, {
+      .collect();
+    const [session, ...duplicates] = sessions;
+    for (const duplicate of duplicates) {
+      await ctx.db.delete(duplicate._id);
+    }
+    if (session !== undefined) {
+      await ctx.db.patch(session._id, {
         lastSeen: Date.now(),
-        userId: user?._id,
+        sessionId,
       });
     } else {
       await ctx.db.insert("presenceSessions", {
-        streamId,
+        streamId: id,
         sessionId,
-        userId: user?._id,
+        userId: user._id,
         lastSeen: Date.now(),
       });
     }
@@ -48,15 +66,23 @@ export const heartbeat = mutation({
 });
 
 export const leave = mutation({
-  args: { streamId: v.id("streams"), sessionId: v.string() },
+  args: { streamId: v.optional(v.id("streams")), sessionId: v.string() },
   handler: async (ctx, { streamId, sessionId }) => {
+    const user = await getCurrentUser(ctx);
+    if (user === null) {
+      return null;
+    }
+    const id = streamId ?? (await resolveCurrent(ctx))?._id;
+    if (id === undefined) {
+      return null;
+    }
     const existing = await ctx.db
       .query("presenceSessions")
       .withIndex("by_session", (q) =>
-        q.eq("streamId", streamId).eq("sessionId", sessionId),
+        q.eq("streamId", id).eq("sessionId", sessionId),
       )
       .unique();
-    if (existing !== null) {
+    if (existing?.userId === user._id) {
       await ctx.db.delete(existing._id);
     }
     return null;

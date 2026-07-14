@@ -59,6 +59,35 @@ export default defineSchema({
     .index("by_stream", ["streamId"])
     .index("by_user", ["userId"]),
 
+  bans: defineTable({
+    userId: v.id("users"),
+    reason: v.string(),
+    expiresAt: v.optional(v.number()),
+    createdBy: v.id("users"),
+  }).index("by_user", ["userId"]),
+
+  // Single-row site settings.
+  settings: defineTable({
+    tickerItems: v.array(v.string()),
+    announcement: v.optional(
+      v.object({
+        message: v.string(),
+        sentAt: v.number(),
+      }),
+    ),
+    audienceEffect: v.optional(
+      v.object({
+        kind: v.union(v.literal("confetti"), v.literal("imageRain")),
+        sentAt: v.number(),
+      }),
+    ),
+  }),
+
+  audienceEffects: defineTable({
+    kind: v.union(v.literal("confetti"), v.literal("imageRain")),
+    sentAt: v.number(),
+  }),
+
   presenceSessions: defineTable({
     streamId: v.id("streams"),
     sessionId: v.string(),
@@ -66,6 +95,7 @@ export default defineSchema({
     lastSeen: v.number(),
   })
     .index("by_stream_and_lastSeen", ["streamId", "lastSeen"])
+    .index("by_streamId_and_userId", ["streamId", "userId"])
     .index("by_lastSeen", ["lastSeen"])
     .index("by_session", ["streamId", "sessionId"]),
 });

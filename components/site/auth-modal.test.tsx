@@ -1,11 +1,39 @@
-import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const signInCreate = vi.fn();
+const signUpCreate = vi.fn();
+const signInOAuth = vi.fn();
+const signUpOAuth = vi.fn();
+const setActive = vi.fn();
+vi.mock("@clerk/nextjs", () => ({
+  useSignIn: () => ({
+    isLoaded: true,
+    signIn: { create: signInCreate, authenticateWithRedirect: signInOAuth },
+    setActive,
+  }),
+  useSignUp: () => ({
+    isLoaded: true,
+    signUp: { create: signUpCreate, authenticateWithRedirect: signUpOAuth },
+    setActive,
+  }),
+}));
+
 import { AuthModal } from "./auth-modal";
+
+beforeEach(() => {
+  signInCreate.mockReset();
+  signUpCreate.mockReset();
+  signInOAuth.mockReset();
+  signUpOAuth.mockReset();
+  setActive.mockReset();
+});
+afterEach(() => vi.clearAllMocks());
 
 describe("AuthModal (controlled)", () => {
   it("renders nothing when closed", () => {
     const { container } = render(
-      <AuthModal open={false} mode="signin" onClose={() => {}} onSwitchMode={() => {}} />
+      <AuthModal open={false} mode="signin" onClose={() => {}} onSwitchMode={() => {}} />,
     );
     expect(container.firstChild).toBeNull();
   });
@@ -30,5 +58,79 @@ describe("AuthModal (controlled)", () => {
     fireEvent.click(screen.getByLabelText("Close"));
     fireEvent.click(screen.getByTestId("auth-backdrop"));
     expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
+  it("signin: submitting drives the Clerk sign-in flow and closes on completion", async () => {
+    signInCreate.mockResolvedValue({ status: "complete", createdSessionId: "sess_1" });
+    const onClose = vi.fn();
+    render(<AuthModal open mode="signin" onClose={onClose} onSwitchMode={() => {}} />);
+
+    fireEvent.change(screen.getByPlaceholderText("you@address.net"), {
+      target: { value: "a@b.com" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("••••••••"), {
+      target: { value: "pw123456" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "SIGN IN" }));
+
+    await waitFor(() =>
+      expect(signInCreate).toHaveBeenCalledWith({
+        identifier: "a@b.com",
+        password: "pw123456",
+      }),
+    );
+    await waitFor(() => expect(setActive).toHaveBeenCalledWith({ session: "sess_1" }));
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+  });
+
+  it("signup: submitting drives the Clerk sign-up flow", async () => {
+    signUpCreate.mockResolvedValue({ status: "complete", createdSessionId: "sess_2" });
+    const onClose = vi.fn();
+    render(<AuthModal open mode="signup" onClose={onClose} onSwitchMode={() => {}} />);
+
+    fireEvent.change(screen.getByPlaceholderText("pick a handle"), {
+      target: { value: "cooluser" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("you@address.net"), {
+      target: { value: "c@d.com" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("••••••••"), {
+      target: { value: "pw123456" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "CREATE ACCOUNT" }));
+
+    await waitFor(() =>
+      expect(signUpCreate).toHaveBeenCalledWith({
+        emailAddress: "c@d.com",
+        password: "pw123456",
+        username: "cooluser",
+      }),
+    );
+  });
+
+  it("signin: Google button starts the Clerk OAuth redirect flow", async () => {
+    render(<AuthModal open mode="signin" onClose={() => {}} onSwitchMode={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: /continue with google/i }));
+    await waitFor(() =>
+      expect(signInOAuth).toHaveBeenCalledWith({
+        strategy: "oauth_google",
+        redirectUrl: "/sso-callback",
+        redirectUrlComplete: "/",
+      }),
+    );
+    expect(signUpOAuth).not.toHaveBeenCalled();
+  });
+
+  it("signup: Google button starts the OAuth flow via sign-up", async () => {
+    render(<AuthModal open mode="signup" onClose={() => {}} onSwitchMode={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: /continue with google/i }));
+    await waitFor(() =>
+      expect(signUpOAuth).toHaveBeenCalledWith({
+        strategy: "oauth_google",
+        redirectUrl: "/sso-callback",
+        redirectUrlComplete: "/",
+      }),
+    );
+    expect(signInOAuth).not.toHaveBeenCalled();
   });
 });

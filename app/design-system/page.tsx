@@ -4,7 +4,6 @@ import { StatCard } from "@/components/ui/stat-card";
 import { StatusIndicator } from "@/components/ui/status-indicator";
 import { TitledCard } from "@/components/ui/titled-card";
 import { InputGroup } from "@/components/ui/input-group";
-import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { stream } from "@/lib/mock-data";
 
 function Section({ heading, children }: { heading: string; children: ReactNode }) {
@@ -82,7 +81,6 @@ export default function DesignSystemPage() {
           </div>
         </div>
         <div className="flex-1" />
-        <ThemeToggle className="px-3 py-[7px] text-[12px]" />
       </header>
 
       <div className="mx-auto flex max-w-[1100px] flex-col gap-9 px-6 pt-7 pb-16">

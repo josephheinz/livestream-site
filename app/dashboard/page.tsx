@@ -1,25 +1,42 @@
-import { Banner } from "@/components/site/banner";
-import { TickerTape } from "@/components/site/ticker-tape";
-import { Footer } from "@/components/site/footer";
-import { DashboardBody } from "@/components/dashboard/dashboard-body";
-import { tickerItems } from "@/lib/mock-data";
+"use client";
 
-export default async function DashboardPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const sp = await searchParams;
-  const live = (Array.isArray(sp.live) ? sp.live[0] : sp.live) === "1";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Banner } from "@/components/site/banner";
+import { TickerTape, tickerItemsFor } from "@/components/site/ticker-tape";
+import { ConnectionStatus } from "@/components/site/connection-status";
+import { DashboardBody } from "@/components/dashboard/dashboard-body";
+
+// Admin-gated console (FR-002): non-admins and signed-out visitors are
+// redirected to the homepage with no admin data rendered (US3-6).
+export default function DashboardPage() {
+  const router = useRouter();
+  const me = useQuery(api.users.me);
+  const live = useQuery(api.streams.getLive);
+  const settings = useQuery(api.settings.get);
+  const isAdmin = me?.role === "admin";
+
+  // `me` is undefined while loading; only redirect once it has resolved.
+  useEffect(() => {
+    if (me !== undefined && !isAdmin) {
+      router.replace("/");
+    }
+  }, [me, isAdmin, router]);
+
+  if (!isAdmin) {
+    return null;
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
-      <Banner live={live} />
+      <Banner live={live != null} />
       <main className="flex-1">
-        <DashboardBody initialLive={live} />
+        <DashboardBody />
       </main>
-      <TickerTape items={tickerItems} />
-      <Footer />
+      <ConnectionStatus />
+      <TickerTape items={tickerItemsFor(live, settings?.tickerItems)} />
     </div>
   );
 }

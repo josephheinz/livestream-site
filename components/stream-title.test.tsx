@@ -1,35 +1,134 @@
-import { render, screen, fireEvent } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { getFunctionName } from "convex/server";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
+
+const updateMock = vi.fn();
+const createMock = vi.fn();
+const useQuery = vi.fn();
+vi.mock("convex/react", () => ({
+  useQuery: (ref: unknown, args?: unknown) => useQuery(ref, args),
+  useMutation: (ref: unknown) => {
+    const name = getFunctionName(ref as never);
+    if (name === getFunctionName(api.streams.update)) return updateMock;
+    if (name === getFunctionName(api.streams.create)) return createMock;
+    return vi.fn();
+  },
+}));
+
 import { StreamHeading } from "@/components/watch/stream-heading";
 import { StreamTitleCard } from "@/components/dashboard/stream-title-card";
 
-const KEY = "nightchannel-stream-title";
+type Stream = { _id: Id<"streams">; title: string };
 
-beforeEach(() => localStorage.clear());
+function mockData(opts: { admin?: boolean; live?: Stream | null; upcoming?: Stream[] }) {
+  useQuery.mockImplementation((ref: unknown) => {
+    if (ref == null) return undefined;
+    const name = getFunctionName(ref as never);
+    if (name === getFunctionName(api.users.me)) return opts.admin ? { role: "admin" } : { role: undefined };
+    if (name === getFunctionName(api.streams.getLive)) return opts.live ?? null;
+    if (name === getFunctionName(api.streams.listUpcoming)) return opts.upcoming ?? [];
+    return undefined;
+  });
+}
+
+beforeEach(() => {
+  useQuery.mockReset();
+  updateMock.mockReset();
+  createMock.mockReset();
+});
+afterEach(() => vi.clearAllMocks());
 
 describe("StreamHeading", () => {
-  it("renders the default stream title as a heading", () => {
-    render(<StreamHeading live={false} />);
+  // US1 (T011): the heading renders the bound stream's title from a prop
+  // (research D3). Visual is unchanged.
+  it("renders the bound stream title as a heading", () => {
+    render(<StreamHeading title="CHANNEL 01 — MAIN FEED" live={false} />);
     expect(screen.getByRole("heading")).toHaveTextContent("CHANNEL 01 — MAIN FEED");
   });
 
-  it("prefers a title saved in localStorage", () => {
-    localStorage.setItem(KEY, "LATE NIGHT TAPES");
-    render(<StreamHeading live />);
+  it("shows whatever bound title it is given", () => {
+    render(<StreamHeading title="LATE NIGHT TAPES" live />);
     expect(screen.getByRole("heading")).toHaveTextContent("LATE NIGHT TAPES");
+  });
+
+  it("renders MiniMessage formatting without activating forbidden effects", () => {
+    const { rerender } = render(
+      <StreamHeading title="<green><bold>MAIN FEED</bold></green>" live />,
+    );
+    const heading = screen.getByRole("heading");
+    expect(heading).toHaveTextContent("MAIN FEED");
+    expect(heading).not.toHaveTextContent("<green>");
+    expect(heading.querySelector('[style*="color"]')).not.toBeNull();
+    expect(heading.querySelector('[style*="font-weight"]')).not.toBeNull();
+
+    rerender(<StreamHeading title="<obf>SECRET</obf><head:Notch>" live />);
+    expect(heading).toHaveTextContent("SECRET");
+    expect(heading).not.toHaveTextContent("<obf>");
+    expect(heading.querySelector("[data-mm-obfuscated], canvas, img")).toBeNull();
+  });
+
+  it("falls back to plain text for malformed MiniMessage", () => {
+    render(<StreamHeading title="<green>UNFINISHED" live />);
+    const heading = screen.getByRole("heading");
+
+    expect(heading).toHaveTextContent("UNFINISHED");
+    expect(heading.querySelector('[style*="color"]')).toBeNull();
   });
 });
 
-describe("StreamTitleCard (dashboard editor)", () => {
-  it("persists edits to localStorage so the Watch heading picks them up", () => {
+describe("StreamTitleCard (dashboard editor — wired to streams.update)", () => {
+  it("shows the bound stream title as an editable input for the admin", () => {
+    mockData({ admin: true, live: { _id: "s1" as Id<"streams">, title: "MAIN FEED" } });
     render(<StreamTitleCard />);
-    fireEvent.change(screen.getByLabelText("Stream title"), {
-      target: { value: "GRAVEYARD SHIFT" },
-    });
-    expect(localStorage.getItem(KEY)).toBe("GRAVEYARD SHIFT");
+    const input = screen.getByLabelText("Stream title") as HTMLInputElement;
+    expect(input.value).toBe("MAIN FEED");
+    expect(input).not.toHaveAttribute("readonly");
+  });
 
-    // A freshly mounted Watch heading reads the saved value.
-    render(<StreamHeading live={false} />);
-    expect(screen.getByRole("heading")).toHaveTextContent("GRAVEYARD SHIFT");
+  it("persists a confirmed edit via streams.update", async () => {
+    mockData({ admin: true, live: { _id: "s1" as Id<"streams">, title: "MAIN FEED" } });
+    render(<StreamTitleCard />);
+    const input = screen.getByLabelText("Stream title");
+    fireEvent.change(input, { target: { value: "GRAVEYARD SHIFT" } });
+    fireEvent.blur(input);
+    await waitFor(() =>
+      expect(updateMock).toHaveBeenCalledWith({ streamId: "s1", title: "GRAVEYARD SHIFT" })
+    );
+  });
+
+  it("creates the stream row when nothing is live or scheduled (edit still lands)", async () => {
+    mockData({ admin: true, live: null, upcoming: [] });
+    render(<StreamTitleCard />);
+    const input = screen.getByLabelText("Stream title");
+    fireEvent.change(input, { target: { value: "FIRST BROADCAST" } });
+    fireEvent.blur(input);
+    await waitFor(() =>
+      expect(createMock).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "FIRST BROADCAST" }),
+      ),
+    );
+    expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  it("offers no edit affordance to a non-admin (read-only)", () => {
+    mockData({ admin: false, live: { _id: "s1" as Id<"streams">, title: "MAIN FEED" } });
+    render(<StreamTitleCard />);
+    const input = screen.getByLabelText("Stream title");
+    expect(input).toHaveAttribute("readonly");
+    fireEvent.change(input, { target: { value: "HIJACK" } });
+    fireEvent.blur(input);
+    expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  it("converges on the persisted value when another admin's write lands (last write wins)", () => {
+    mockData({ admin: true, live: { _id: "s1" as Id<"streams">, title: "MAIN FEED" } });
+    const { rerender } = render(<StreamTitleCard />);
+    expect((screen.getByLabelText("Stream title") as HTMLInputElement).value).toBe("MAIN FEED");
+    // A concurrent write updates the persisted title; the unedited card follows.
+    mockData({ admin: true, live: { _id: "s1" as Id<"streams">, title: "TAKEOVER" } });
+    rerender(<StreamTitleCard />);
+    expect((screen.getByLabelText("Stream title") as HTMLInputElement).value).toBe("TAKEOVER");
   });
 });

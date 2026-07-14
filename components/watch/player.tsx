@@ -1,12 +1,68 @@
+"use client";
+
+import { useEffect, useRef } from "react";
 import { Blink } from "@/components/motion/motion-primitives";
-import { stream } from "@/lib/mock-data";
 
 const ctrlBtn =
   "flex h-[30px] w-[30px] items-center justify-center border border-[rgba(200,190,165,.35)] text-[#d6cfbc]";
 
-// Video-player placeholder — distinct live / off-air visuals with an inert,
-// overlaid control bar.
+// The 001 proxy serves same-origin HLS here (research D1); playback never touches
+// the encoder origin directly.
+const LIVE_PROXY_PATH = "/stream/live.m3u8";
+// Decorative chrome — the backend tracks no channel/quality fields.
+const CHANNEL = "01";
+const QUALITY = "1080p";
+
+/**
+ * Attaches the live HLS feed to `video`, lazy-loading hls.js for MSE browsers and
+ * falling back to native HLS on Safari/iOS (research D1). Returns a cleanup fn.
+ * Recovers from transient (fatal) network/media errors instead of freezing (FR-004).
+ */
+function playLive(video: HTMLVideoElement): () => void {
+  let disposed = false;
+  let hls: { destroy: () => void } | null = null;
+
+  if (video.canPlayType("application/vnd.apple.mpegurl")) {
+    video.src = LIVE_PROXY_PATH;
+    return () => {
+      video.removeAttribute("src");
+      video.load();
+    };
+  }
+
+  void import("hls.js").then(({ default: Hls }) => {
+    if (disposed || !Hls.isSupported()) return;
+    const instance = new Hls();
+    hls = instance;
+    instance.on(Hls.Events.ERROR, (_event, data) => {
+      if (!data.fatal) return;
+      if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+        instance.startLoad();
+      } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+        instance.recoverMediaError();
+      } else {
+        instance.destroy();
+      }
+    });
+    instance.loadSource(LIVE_PROXY_PATH);
+    instance.attachMedia(video);
+  });
+
+  return () => {
+    disposed = true;
+    hls?.destroy();
+  };
+}
+
+// Video player with distinct live / off-air visuals and an overlaid control bar.
 export function Player({ live }: { live: boolean }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (!live || videoRef.current === null) return;
+    return playLive(videoRef.current);
+  }, [live]);
+
   return (
     <div className="relative min-h-[240px] flex-1 overflow-hidden border-2 border-border bg-[#16140f] shadow-brutal">
       {live ? (
@@ -19,11 +75,19 @@ export function Player({ live }: { live: boolean }) {
                 "repeating-linear-gradient(0deg, rgba(255,255,255,.03) 0 1px, transparent 1px 3px)",
             }}
           />
+          <video
+            ref={videoRef}
+            data-testid="player-video"
+            autoPlay
+            playsInline
+            muted
+            className="absolute inset-0 h-full w-full object-contain"
+          />
           <div className="absolute top-3 left-3.5 font-mono text-[12px] font-bold tracking-[.06em] text-[#d47a72]">
             <Blink>●</Blink> REC
           </div>
           <div className="absolute top-3 right-3.5 font-mono text-[11px] text-[#a59d89]">
-            CH {stream.channel} · {stream.quality}
+            CH {CHANNEL} · {QUALITY}
           </div>
           <div className="absolute inset-0 flex items-center justify-center font-mono text-[13px] tracking-[.14em] text-[#6f6a58]">
             [ LIVE CAMERA FEED ]
@@ -43,22 +107,24 @@ export function Player({ live }: { live: boolean }) {
         </div>
       )}
 
-      <div
-        data-testid="player-controls"
-        className="absolute right-2.5 bottom-2.5 left-2.5 flex items-center gap-2.5 border border-[rgba(200,190,165,.25)] bg-[rgba(22,20,15,.72)] px-2.5 py-[7px] backdrop-blur-[5px]"
-      >
-        <div className={`${ctrlBtn} text-[11px]`}>❚❚</div>
-        <div className="min-w-[44px] text-center font-mono text-[12px] font-bold">
-          {live ? <span className="text-[#d47a72]">LIVE</span> : <span className="text-[#847d6a]">--:--</span>}
+      {live && (
+        <div
+          data-testid="player-controls"
+          className="absolute right-2.5 bottom-2.5 left-2.5 flex items-center gap-2.5 border border-[rgba(200,190,165,.25)] bg-[rgba(22,20,15,.72)] px-2.5 py-[7px] backdrop-blur-[5px]"
+        >
+          <div className={`${ctrlBtn} text-[11px]`}>❚❚</div>
+          <div className="min-w-[44px] text-center font-mono text-[12px] font-bold">
+            <span className="text-[#d47a72]">LIVE</span>
+          </div>
+          <div className="relative h-1.5 flex-1 bg-[rgba(200,190,165,.2)]">
+            <div className="absolute inset-y-0 left-0 w-full bg-primary" />
+            <div className="absolute -top-1 -right-0.5 h-[13px] w-[13px] border border-[#16140f] bg-[#d6cfbc]" />
+          </div>
+          <div className={`${ctrlBtn} font-sans text-[10px] font-bold`}>CC</div>
+          <div className={`${ctrlBtn} text-[13px]`}>⚙</div>
+          <div className={`${ctrlBtn} text-[14px]`}>⛶</div>
         </div>
-        <div className="relative h-1.5 flex-1 bg-[rgba(200,190,165,.2)]">
-          <div className="absolute inset-y-0 left-0 w-full bg-primary" />
-          <div className="absolute -top-1 -right-0.5 h-[13px] w-[13px] border border-[#16140f] bg-[#d6cfbc]" />
-        </div>
-        <div className={`${ctrlBtn} font-sans text-[10px] font-bold`}>CC</div>
-        <div className={`${ctrlBtn} text-[13px]`}>⚙</div>
-        <div className={`${ctrlBtn} text-[14px]`}>⛶</div>
-      </div>
+      )}
     </div>
   );
 }

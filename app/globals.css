@@ -4,6 +4,17 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Tailwind 4 preflight resets button cursors to default; everything clickable
+   on this site should read as clickable. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  label:has(> input[type="checkbox"]),
+  summary {
+    cursor: pointer;
+  }
+}
+
 /* Design system — softened neobrutalism.
    Source: docs/livestream-site-design-brief/project/Design System.dc.html */
 :root {

@@ -15,18 +15,18 @@ async function seedLiveStream(
   return streamId;
 }
 
-test("send requires auth and a live stream", async () => {
+test("send requires auth but works regardless of stream status", async () => {
   const t = setup();
   const admin = await asAdmin(t);
   const viewer = await asUser(t);
 
+  // Chat is always open: a scheduled (off-air) stream accepts messages too.
   const scheduledId = await admin.mutation(api.streams.create, {
     title: "Not yet",
     scheduledStart: Date.now() + 1_000_000,
   });
-  await expect(
-    viewer.mutation(api.chat.send, { streamId: scheduledId, body: "early!" }),
-  ).rejects.toThrow();
+  await viewer.mutation(api.chat.send, { streamId: scheduledId, body: "early!" });
+  expect(await t.query(api.chat.list, { streamId: scheduledId })).toHaveLength(1);
 
   const liveId = await seedLiveStream(admin);
   await expect(
@@ -68,6 +68,42 @@ test("remove is admin-only and hides the message from list", async () => {
   expect(await t.query(api.chat.list, { streamId })).toHaveLength(0);
 });
 
+test("admins see removed messages (flagged); non-admins do not", async () => {
+  const t = setup();
+  const admin = await asAdmin(t);
+  const viewer = await asUser(t);
+  const streamId = await seedLiveStream(admin);
+
+  await viewer.mutation(api.chat.send, { streamId, body: "rude thing" });
+  const [message] = await t.query(api.chat.list, { streamId });
+  await admin.mutation(api.chat.remove, { messageId: message._id });
+
+  // Non-admin (anonymous) list hides it; admin list includes it flagged.
+  expect(await t.query(api.chat.list, { streamId })).toHaveLength(0);
+  const adminView = await admin.query(api.chat.list, { streamId });
+  expect(adminView).toHaveLength(1);
+  expect(adminView[0]).toMatchObject({ body: "rude thing", removed: true });
+});
+
+test("userProfile: admins see removed messages (flagged); non-admins do not", async () => {
+  const t = setup();
+  const admin = await asAdmin(t);
+  const viewer = await asUser(t);
+  const streamId = await seedLiveStream(admin);
+  const id = await viewerId(t);
+
+  await viewer.mutation(api.chat.send, { streamId, body: "rude thing" });
+  const [message] = await t.query(api.chat.list, { streamId });
+  await admin.mutation(api.chat.remove, { messageId: message._id });
+
+  const anon = await t.query(api.chat.userProfile, { userId: id });
+  expect(anon!.messages).toHaveLength(0);
+
+  const adminView = await admin.query(api.chat.userProfile, { userId: id });
+  expect(adminView!.messages).toHaveLength(1);
+  expect(adminView!.messages[0]).toMatchObject({ body: "rude thing", removed: true });
+});
+
 test("body validation: empty and >500 chars rejected", async () => {
   const t = setup();
   const admin = await asAdmin(t);
@@ -83,6 +119,49 @@ test("body validation: empty and >500 chars rejected", async () => {
   await expect(
     viewer.mutation(api.chat.send, { streamId, body: "x".repeat(501) }),
   ).rejects.toThrow();
+});
+
+async function viewerId(t: ReturnType<typeof setup>): Promise<Id<"users">> {
+  return await t.run(async (ctx) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_externalId", (q) => q.eq("externalId", "user_viewer"))
+      .unique();
+    return user!._id;
+  });
+}
+
+test("a banned user's send is rejected with the ban error; unbanning restores it", async () => {
+  const t = setup();
+  const admin = await asAdmin(t);
+  const viewer = await asUser(t);
+  const streamId = await seedLiveStream(admin);
+  const id = await viewerId(t);
+
+  await admin.mutation(api.bans.ban, { userId: id, reason: "spam" });
+  await expect(
+    viewer.mutation(api.chat.send, { streamId, body: "hello" }),
+  ).rejects.toThrow("You are banned from chat");
+
+  await admin.mutation(api.bans.unban, { userId: id });
+  await viewer.mutation(api.chat.send, { streamId, body: "hello" });
+  expect(await t.query(api.chat.list, { streamId })).toHaveLength(1);
+});
+
+test("an expired ban does not block sending", async () => {
+  const t = setup();
+  const admin = await asAdmin(t);
+  const viewer = await asUser(t);
+  const streamId = await seedLiveStream(admin);
+  const id = await viewerId(t);
+
+  await admin.mutation(api.bans.ban, {
+    userId: id,
+    reason: "temporary",
+    expiresAt: Date.now() - 1_000,
+  });
+  await viewer.mutation(api.chat.send, { streamId, body: "still allowed" });
+  expect(await t.query(api.chat.list, { streamId })).toHaveLength(1);
 });
 
 test("deleted author lists with the 'Deleted user' fallback (research D11)", async () => {
@@ -103,4 +182,23 @@ test("deleted author lists with the 'Deleted user' fallback (research D11)", asy
   const [message] = await t.query(api.chat.list, { streamId });
   expect(message.body).toBe("still here");
   expect(message.authorName).toBe("Deleted user");
+});
+
+test("send without a streamId bootstraps the channel's stream row (chat always works)", async () => {
+  const t = setup();
+  await asAdmin(t);
+  const viewer = await asUser(t);
+
+  // Zero streams exist — the first message creates the single-channel row.
+  await viewer.mutation(api.chat.send, { body: "first ever" });
+
+  const current = await t.query(api.streams.current);
+  expect(current).not.toBeNull();
+  const messages = await t.query(api.chat.list, { streamId: current!._id });
+  expect(messages).toHaveLength(1);
+  expect(messages[0]).toMatchObject({ body: "first ever" });
+
+  // Only one bootstrap row exists.
+  const streams = await t.run(async (ctx) => ctx.db.query("streams").collect());
+  expect(streams).toHaveLength(1);
 });
