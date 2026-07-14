@@ -28,6 +28,7 @@ export default defineSchema({
     ingestKey: v.optional(v.string()),
     ingestActive: v.optional(v.boolean()),
     publishEpoch: v.optional(v.number()),
+    pinnedMessageId: v.optional(v.id("chatMessages")),
   })
     .index("by_status", ["status", "scheduledStart"])
     .index("by_ingestKey", ["ingestKey"]),
