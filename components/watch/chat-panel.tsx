@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Pin } from "lucide-react";
-import { Popover } from "radix-ui";
+import { Popover, Tooltip } from "radix-ui";
 import { useQuery, useMutation } from "convex/react";
 import { useAuth } from "@clerk/nextjs";
 import { api } from "@/convex/_generated/api";
@@ -44,13 +44,27 @@ function renderBody(body: string, emojiUrls: Map<string, string>): React.ReactNo
     const url = match ? emojiUrls.get(match[1]) : undefined;
     if (match && url !== undefined) {
       return (
-        // eslint-disable-next-line @next/next/no-img-element -- dynamic Convex-storage emoji URL
-        <img
-          key={i}
-          src={url}
-          alt={match[1]}
-          className="inline-block h-[18px] w-[18px] align-text-bottom"
-        />
+        <Tooltip.Provider key={i} delayDuration={150}>
+          <Tooltip.Root>
+            <Tooltip.Trigger asChild>
+              {/* eslint-disable-next-line @next/next/no-img-element -- dynamic Convex-storage emoji URL */}
+              <img
+                src={url}
+                alt={match[1]}
+                className="inline-block h-[18px] w-[18px] align-text-bottom"
+              />
+            </Tooltip.Trigger>
+            <Tooltip.Portal>
+              <Tooltip.Content
+                sideOffset={4}
+                collisionPadding={8}
+                className="z-50 border-2 border-border bg-bar px-2 py-1 font-mono text-[11px] text-bar-ink shadow-brutal-sm"
+              >
+                {part}
+              </Tooltip.Content>
+            </Tooltip.Portal>
+          </Tooltip.Root>
+        </Tooltip.Provider>
       );
     }
     return <React.Fragment key={i}>{part}</React.Fragment>;
@@ -84,11 +98,13 @@ function UserNamePopover({
   name,
   color,
   isAdmin,
+  emojiUrls,
 }: {
   userId: Id<"users">;
   name: string;
   color: string;
   isAdmin: boolean;
+  emojiUrls: Map<string, string>;
 }) {
   const [open, setOpen] = React.useState(false);
   const profile = useQuery(api.chat.userProfile, open ? { userId } : "skip");
@@ -176,13 +192,15 @@ function UserNamePopover({
                       <span className="text-muted-foreground">:</span>{" "}
                       {m.removed ? (
                         <>
-                          <span className="text-muted-foreground line-through">{m.body}</span>
+                          <span className="text-muted-foreground line-through">
+                            {renderBody(m.body, emojiUrls)}
+                          </span>
                           <span className="ml-1 font-mono text-[10px] text-primary uppercase">
                             [removed]
                           </span>
                         </>
                       ) : (
-                        m.body
+                        renderBody(m.body, emojiUrls)
                       )}
                     </div>
                   </React.Fragment>
@@ -404,6 +422,7 @@ export function ChatPanel({
                 name={m.authorName}
                 color={colorFor(m.authorName)}
                 isAdmin={isAdmin}
+                emojiUrls={emojiUrls}
               />
               <span className="text-muted-foreground">:</span>{" "}
               {m.removed ? (

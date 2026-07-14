@@ -239,7 +239,28 @@ describe("ChatPanel (wired)", () => {
     const img = screen.getByAltText("party") as HTMLImageElement;
     expect(img.tagName).toBe("IMG");
     expect(img.src).toBe("https://img.test/party.png");
+    // Wrapped in a Radix tooltip trigger so hover shows the :name: token.
+    expect(img.dataset.state).toBe("closed");
     expect(screen.getByText(/:nope:/)).toBeInTheDocument();
+  });
+
+  it("renders :name: tokens as <img> inside the profile popover history", () => {
+    const createdAt = Date.UTC(2026, 6, 14, 16);
+    mockData({
+      messages: [{ _id: "m1", body: "hello", authorName: "vhs", userId: "u1" }],
+      emojis: [{ _id: "e1", name: "party", imageUrl: "https://img.test/party.png" }],
+      profile: {
+        createdAt,
+        messages: [{ _id: "pm1", body: "gg :party:", createdAt, removed: false }],
+      },
+    });
+    renderPanel();
+
+    fireEvent.click(screen.getByText("vhs"));
+
+    const img = screen.getByAltText("party") as HTMLImageElement;
+    expect(img.src).toBe("https://img.test/party.png");
+    expect(img.dataset.state).toBe("closed");
   });
 
   it("renders profile-history dates as labeled separators without dash text", () => {
