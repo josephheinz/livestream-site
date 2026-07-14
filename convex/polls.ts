@@ -35,7 +35,7 @@ export const create = mutation({
     if (trimmedOptions.some((o) => o.length > MAX_OPTION_CHARS)) {
       throw new Error(`Options exceed ${MAX_OPTION_CHARS} characters`);
     }
-    if (durationMinutes <= 0) {
+    if (!Number.isFinite(durationMinutes) || durationMinutes <= 0) {
       throw new Error("Duration must be positive");
     }
     const stream = await ensureCurrent(ctx);

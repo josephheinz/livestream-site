@@ -280,7 +280,7 @@ export function ChatPanel({
     if (el !== null && stickToBottom.current) {
       el.scrollTop = el.scrollHeight;
     }
-  }, [messages.length]);
+  }, [messages]);
 
   // Bounded (≤200 active emojis); cheap to rebuild each render.
   const emojiUrls = new Map<string, string>();

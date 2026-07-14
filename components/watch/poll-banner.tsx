@@ -33,13 +33,15 @@ export function PollBanner({ streamId }: { streamId?: Id<"streams"> }) {
     }
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
-  }, [poll]);
+    // Depend on the id, not the object — vote updates replace `poll` every
+    // second-ish and would otherwise restart the interval before it fires.
+  }, [poll?._id]);
 
   if (poll == null || poll.expiresAt <= now) {
     return null;
   }
 
-  const voted = poll.myVote !== null;
+  const voted = poll.myVote != null;
   const total = poll.counts.reduce((a, b) => a + b, 0);
 
   const castVote = async (optionIndex: number) => {

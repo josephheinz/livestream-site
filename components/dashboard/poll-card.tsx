@@ -23,6 +23,7 @@ export function PollCard() {
   const ready =
     question.trim().length > 0 &&
     options.every((o) => o.trim().length > 0) &&
+    Number.isFinite(Number(minutes)) &&
     Number(minutes) > 0;
 
   const submit = async (event: React.FormEvent) => {
